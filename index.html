@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SINTAS - Dompet & Pusat Kendali</title>
+    
+    <!-- PWA Manifest & Theme -->
+    <meta name="theme-color" content="#0D81BC">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="manifest" id="manifest-placeholder">
+    
+    <!-- Tailwind CSS & Phosphor Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        html, body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6;
+            -webkit-tap-highlight-color: transparent;
+        }
+        main {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+        /* Touch scroll momentum for Android */
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+        
+        /* Toast Animation */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .toast-enter { animation: slideIn 0.3s ease-out forwards; }
+        .toast-exit { animation: slideOut 0.3s ease-in forwards; }
+        
+        /* Custom Scrollbar */
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0D81BC',
+                        'primary-dark': '#096392',
+                        'primary-light': '#E0F2FE',
+                        accent: '#F57726',
+                        'accent-dark': '#DA5E13',
+                        'accent-light': '#FFF7ED',
+                        secondary: '#F0F9FF'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-gray-900 h-[100dvh] h-screen overflow-hidden flex flex-col md:flex-row bg-[#F3F4F6] w-full max-w-full">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[250] flex flex-col gap-2"></div>
+
+    <!-- Login Screen (Overlay) -->
+    <div id="login-screen" class="fixed inset-0 bg-gray-50 z-[100] flex items-center justify-center">
+        <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-gray-200 mx-4">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm p-2 flex items-center justify-center mx-auto mb-4">
+                    <img src="logo-icon.png" alt="SAKUKU Logo" class="w-full h-full object-contain">
+                </div>
+                <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight" id="auth-title">SAKUKU</h2>
+                <p class="text-gray-500 text-xs mt-1" id="auth-subtitle">Dompet Digital & Pusat Kendali Harian</p>
+            </div>
+            <form id="login-form" onsubmit="event.preventDefault(); handleAuthSubmit();" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-900 mb-1">Email / Gmail</label>
+                    <input type="text" id="login-email" placeholder="contoh@gmail.com" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-900 mb-1">Password</label>
+                    <input type="password" id="login-pass" placeholder="Minimal 6 karakter" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-gray-900 bg-white" required>
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors mt-4 shadow-md flex items-center justify-center gap-2">
+                    <span id="auth-btn-text">Masuk</span>
+                </button>
+            </form>
+            <div class="mt-4 flex flex-col gap-2 text-center">
+                <button type="button" id="auth-mode-toggle" onclick="toggleAuthMode()" class="text-sm text-primary font-medium hover:underline">
+                    Belum punya akun? Daftar akun baru
+                </button>
+                <div class="relative my-2">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                    <div class="relative flex justify-center text-xs text-gray-400"><span class="bg-white px-2">atau</span></div>
+                </div>
+                <button type="button" onclick="handleGuestLogin()" class="text-xs text-gray-500 hover:text-gray-700 hover:underline">
+                    Masuk sebagai Tamu (Tanpa Akun)
+                </button>
+            </div>
+            <div class="mt-4 p-3 bg-blue-50 text-blue-900 text-xs rounded-lg text-center border border-blue-200">
+                Sistem aktif terhubung ke database cloud Firebase.
+            </div>
+        </div>
+    </div>
+
+    <!-- DESKTOP SIDEBAR (Visible on md and up) -->
+    <aside class="hidden md:flex flex-col w-64 h-screen bg-[#0F172A] text-gray-300 shadow-2xl relative z-40 border-r border-slate-800 shrink-0">
+        
+        <!-- Logo Desktop -->
+        <div class="flex items-center justify-between px-6 pt-6 pb-5 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-800/80 p-1.5 shadow-sm border border-slate-700/60 flex items-center justify-center shrink-0">
+                    <img src="logo-icon.png" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight" id="app-name-display">SINTAS</h1>
+                    <p class="text-[10px] text-slate-400 font-medium">Dompet & Pusat Kendali</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items Desktop -->
+        <div class="flex flex-col w-full px-3 py-4 space-y-1 overflow-y-auto flex-1">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 mt-1">Utama</p>
+
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all bg-primary text-white font-semibold">
+                <i class="ph ph-squares-four text-xl"></i>
+                <span class="text-sm">Beranda</span>
+            </button>
+            
+            <button onclick="switchTab('keuangan')" id="nav-keuangan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-wallet text-xl"></i>
+                <span class="text-sm">Keuangan</span>
+            </button>
+
+            <button onclick="switchTab('jadwal')" id="nav-jadwal" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-calendar-check text-xl"></i>
+                <span class="text-sm">Jadwal</span>
+            </button>
+
+            <button onclick="switchTab('kalender')" id="nav-kalender" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-calendar text-xl"></i>
+                <span class="text-sm">Kalender</span>
+            </button>
+            
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 mt-4">Produktivitas</p>
+
+            <button onclick="switchTab('habit')" id="nav-habit" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-check-square-offset text-xl"></i>
+                <span class="text-sm">Habit Tracker</span>
+            </button>
+
+            <button onclick="switchTab('catatan')" id="nav-catatan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-notebook text-xl"></i>
+                <span class="text-sm">Catatan</span>
+            </button>
+
+            <button onclick="switchTab('hutang')" id="nav-hutang" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-hand-coins text-xl"></i>
+                <span class="text-sm">Piutang</span>
+            </button>
+
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 mt-4">Sistem</p>
+
+            <button onclick="switchTab('pengaturan')" id="nav-pengaturan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full justify-start transition-all hover:bg-slate-800 text-slate-400 hover:text-white">
+                <i class="ph ph-gear text-xl"></i>
+                <span class="text-sm">Profil & AI</span>
+            </button>
+        </div>
+
+        <!-- Logout Desktop Footer -->
+        <div class="p-3 border-t border-slate-800/80 mt-auto">
+            <button onclick="logout()" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors text-sm font-semibold">
+                <i class="ph ph-sign-out text-lg"></i>
+                <span>Keluar Akun</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MOBILE BOTTOM NAVIGATION (Visible on mobile screens below md) -->
+    <nav class="block md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0F172A]/95 backdrop-blur-xl border-t border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] pb-[max(env(safe-area-inset-bottom),6px)] pt-1 px-2 select-none">
+        <div class="grid grid-cols-5 items-center w-full">
+            <!-- 1. Beranda -->
+            <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="mobile-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-primary font-semibold transition-all active:scale-95">
+                <i class="ph-bold ph-squares-four text-xl"></i>
+                <span class="text-[10px] mt-0.5 leading-none">Beranda</span>
+            </button>
+
+            <!-- 2. Keuangan -->
+            <button onclick="switchTab('keuangan')" id="mobile-nav-keuangan" class="mobile-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95">
+                <i class="ph ph-wallet text-xl"></i>
+                <span class="text-[10px] mt-0.5 leading-none">Keuangan</span>
+            </button>
+
+            <!-- 3. Floating Quick Action Button (Center) -->
+            <div class="flex items-center justify-center -mt-6">
+                <button onclick="openModal('modal-quick-actions')" class="w-13 h-13 min-w-[52px] min-h-[52px] bg-gradient-to-tr from-[#0D81BC] to-[#F57726] active:scale-90 text-white rounded-full shadow-lg shadow-sky-950/60 flex items-center justify-center border-[3.5px] border-[#0F172A] transition-transform" title="Tambah / Aksi Cepat">
+                    <i class="ph-bold ph-plus text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- 4. Jadwal -->
+            <button onclick="switchTab('jadwal')" id="mobile-nav-jadwal" class="mobile-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95">
+                <i class="ph ph-calendar-check text-xl"></i>
+                <span class="text-[10px] mt-0.5 leading-none">Jadwal</span>
+            </button>
+
+            <!-- 5. Lainnya / Menu -->
+            <button onclick="openModal('modal-mobile-menu')" id="mobile-nav-more" class="mobile-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95">
+                <i id="mobile-nav-more-icon" class="ph ph-dots-three-circle text-xl"></i>
+                <span id="mobile-nav-more-label" class="text-[10px] mt-0.5 leading-none">Lainnya</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 h-full overflow-y-auto overflow-x-hidden pb-24 md:pb-6 relative scroll-smooth bg-[#F8FAFC] w-full max-w-full">
+        
+        <!-- Top Bar -->
+        <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <img src="logo-icon.png" alt="SAKUKU Logo" class="w-6 h-6 object-contain md:hidden shrink-0">
+                <h2 class="text-base sm:text-xl font-bold text-slate-900 truncate max-w-[160px] sm:max-w-none" id="mobile-title">Beranda</h2>
+                <span class="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1 rounded-full border border-slate-200" id="desktop-date">
+                    <i class="ph ph-calendar text-primary"></i> Hari ini
+                </span>
+            </div>
+            
+            <!-- Quick Actions & Profil Kanan Atas -->
+            <div class="flex items-center gap-3">
+                <!-- Status Cloud Indicator -->
+                <div class="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Cloud Terhubung
+                </div>
+
+                <!-- Scan AI Button Quick Shortcut (Desktop) -->
+                <button onclick="openModal('modal-uang')" class="hidden md:flex items-center gap-1.5 bg-blue-50 text-primary hover:bg-blue-100 font-semibold text-xs px-3.5 py-1.5 rounded-xl border border-blue-200 transition-colors">
+                    <i class="ph-bold ph-scan text-sm"></i> Scan Struk
+                </button>
+
+                <!-- Profil Singkat -->
+                <div class="flex items-center gap-2.5 cursor-pointer pl-3 border-l border-slate-200" onclick="switchTab('pengaturan')">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-slate-900 leading-tight" id="user-name-display">Admin</p>
+                        <p class="text-[10px] text-slate-500 leading-tight" id="user-role-display">Pemilik</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-blue-100">
+                        <span id="user-avatar-text">A</span>
+                    </div>
+                </div>
+
+                <!-- Tombol Logout Mobile -->
+                <button onclick="logout()" class="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl md:hidden transition-colors" title="Keluar">
+                    <i class="ph ph-sign-out text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Container Lebar Responsif (Max-w-7xl) -->
+        <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+            
+            <!-- TAB: DASHBOARD -->
+            <div id="tab-dashboard" class="tab-content block space-y-6">
+                
+                <!-- Hero Greeting & Quick Action Banner (Kombinasi Biru & Orange Sakuku + Watermark Logo) -->
+                <div class="bg-gradient-to-r from-[#096392] via-[#0D81BC] to-[#F57726] rounded-2xl p-4 sm:p-7 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
+                    <!-- Watermark Logo Samar SAKUKU di kanan belakang -->
+                    <div class="absolute -right-8 -bottom-8 opacity-20 pointer-events-none select-none">
+                        <img src="logo-icon.png" alt="Logo Watermark" class="w-48 sm:w-64 h-48 sm:h-64 object-contain brightness-0 invert">
+                    </div>
+                    <div class="relative z-10">
+                        <span class="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 mb-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-orange-300"></span> SAKUKU Assistant
+                        </span>
+                        <h2 class="text-xl sm:text-3xl font-extrabold tracking-tight">Halo, <span id="greet-name">Admin</span>! 👋</h2>
+                        <p class="text-sky-100 text-xs sm:text-sm mt-1">Berikut adalah ringkasan produktivitas dan keuangan hari ini.</p>
+                    </div>
+                    <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 relative z-10 w-full sm:w-auto">
+                        <button onclick="openModal('modal-uang')" class="bg-white hover:bg-orange-50 text-slate-900 hover:text-[#F57726] font-bold px-3.5 py-2.5 rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95">
+                            <i class="ph-bold ph-scan text-sm sm:text-base text-[#F57726]"></i> Scan Struk AI
+                        </button>
+                        <button onclick="openModal('modal-jadwal')" class="bg-white/20 hover:bg-white/30 text-white font-semibold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all backdrop-blur-md border border-white/30 shadow-xs active:scale-95">
+                            <i class="ph-bold ph-plus text-sm sm:text-base"></i> Jadwal Baru
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Stats 4 Kartu Responsif (Anti-Overflow Mobile) -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex items-center justify-between min-w-0">
+                        <div class="min-w-0 flex-1 pr-1">
+                            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Saldo Bersih</p>
+                            <h3 class="text-sm sm:text-2xl font-extrabold text-slate-900 mt-0.5 sm:mt-1 truncate" id="dash-saldo">Rp 0</h3>
+                            <p class="text-[10px] sm:text-[11px] text-emerald-600 font-medium mt-0.5 sm:mt-1 flex items-center gap-1 truncate"><i class="ph ph-shield-check shrink-0"></i> Kas Realtime</p>
+                        </div>
+                        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-50 text-primary flex items-center justify-center text-base sm:text-xl shrink-0">
+                            <i class="ph-fill ph-wallet"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex items-center justify-between min-w-0">
+                        <div class="min-w-0 flex-1 pr-1">
+                            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Keluar Hari Ini</p>
+                            <h3 class="text-sm sm:text-2xl font-extrabold text-slate-900 mt-0.5 sm:mt-1 truncate" id="dash-keluar">Rp 0</h3>
+                            <p class="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5 sm:mt-1 flex items-center gap-1 truncate"><i class="ph ph-clock shrink-0"></i> Hari ini</p>
+                        </div>
+                        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-base sm:text-xl shrink-0">
+                            <i class="ph-fill ph-trend-down"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex items-center justify-between min-w-0">
+                        <div class="min-w-0 flex-1 pr-1">
+                            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Target Jadwal</p>
+                            <h3 class="text-sm sm:text-2xl font-extrabold text-slate-900 mt-0.5 sm:mt-1 truncate" id="dash-tugas">0/0</h3>
+                            <p class="text-[10px] sm:text-[11px] text-emerald-600 font-medium mt-0.5 sm:mt-1 flex items-center gap-1 truncate"><i class="ph ph-check-circle shrink-0"></i> Selesai</p>
+                        </div>
+                        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base sm:text-xl shrink-0">
+                            <i class="ph-fill ph-calendar-check"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex items-center justify-between min-w-0">
+                        <div class="min-w-0 flex-1 pr-1">
+                            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Total Piutang</p>
+                            <h3 class="text-sm sm:text-2xl font-extrabold text-slate-900 mt-0.5 sm:mt-1 truncate" id="dash-piutang">Rp 0</h3>
+                            <p class="text-[10px] sm:text-[11px] text-amber-600 font-medium mt-0.5 sm:mt-1 flex items-center gap-1 truncate"><i class="ph ph-hand-coins shrink-0"></i> Tertagih</p>
+                        </div>
+                        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-50 text-primary flex items-center justify-center text-base sm:text-xl shrink-0">
+                            <i class="ph-fill ph-hand-coins"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian Grid Beranda: 8 Kolom Kiri + 4 Kolom Kanan (Memaksimalkan Space Layar) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Kolom Utama (8 Kolom di LG) -->
+                    <div class="lg:col-span-8 space-y-6">
+                        
+                        <!-- Dua Kartu Side-by-Side: Jadwal & Habit -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Card Jadwal Terdekat -->
+                            <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                            <i class="ph ph-clock text-primary text-base"></i> Jadwal Terdekat
+                                        </h3>
+                                        <button onclick="switchTab('jadwal')" class="text-xs text-primary font-semibold hover:underline">Semua</button>
+                                    </div>
+                                    <div class="space-y-2.5" id="dash-jadwal-list">
+                                        <!-- Injected -->
+                                    </div>
+                                </div>
+                                <button onclick="openModal('modal-jadwal')" class="mt-4 w-full py-2 bg-blue-50 hover:bg-blue-100 text-primary text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                                    <i class="ph-bold ph-plus"></i> Tambah Jadwal
+                                </button>
+                            </div>
+
+                            <!-- Card Habit Hari Ini -->
+                            <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                            <i class="ph ph-check-square-offset text-emerald-600 text-base"></i> Habit Hari Ini
+                                        </h3>
+                                        <button onclick="switchTab('habit')" class="text-xs text-primary font-semibold hover:underline">Lihat Semua</button>
+                                    </div>
+
+                                    <!-- Diagram & Notifikasi Habit Beranda -->
+                                    <div class="bg-slate-50/80 border border-slate-100 rounded-xl p-3 mb-3.5 flex items-center gap-3">
+                                        <div class="relative w-12 h-12 shrink-0 flex items-center justify-center">
+                                            <svg class="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                                                <circle cx="24" cy="24" r="20" stroke="#E2E8F0" stroke-width="4.5" fill="none" />
+                                                <circle id="dash-habit-circle" cx="24" cy="24" r="20" stroke="#0D81BC" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" class="transition-all duration-700" />
+                                            </svg>
+                                            <div class="absolute inset-0 flex items-center justify-center">
+                                                <span id="dash-habit-pct" class="text-[11px] font-extrabold text-slate-900">0%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-1">
+                                                <span class="text-xs font-bold text-slate-800 truncate" id="dash-habit-status-title">Habit Harian</span>
+                                                <span class="text-[10px] font-bold text-primary bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full shrink-0" id="dash-habit-badge">0/0 Selesai</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-500 mt-0.5 truncate" id="dash-habit-status-sub">Selesaikan targetmu hari ini</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- List Habit (Fokus Belum Selesai) -->
+                                    <div class="space-y-2" id="dash-habit-list">
+                                        <!-- Injected -->
+                                    </div>
+                                </div>
+                                <button onclick="openModal('modal-habit')" class="mt-4 w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                                    <i class="ph-bold ph-plus"></i> Tambah Habit
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card Transaksi Terakhir di Beranda (Mengisi Space Bawah agar Padat & Bermanfaat) -->
+                        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                    <i class="ph ph-receipt text-primary text-base"></i> Transaksi Terakhir
+                                </h3>
+                                <div class="flex gap-2">
+                                    <button onclick="openModal('modal-uang')" class="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-semibold shadow-xs transition-all">+ Catat</button>
+                                    <button onclick="switchTab('keuangan')" class="text-xs text-primary font-semibold hover:underline py-1.5 px-2">Semua</button>
+                                </div>
+                            </div>
+                            <div class="divide-y divide-slate-100" id="dash-recent-uang">
+                                <!-- Injected -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kolom Sidebar (4 Kolom di LG) -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <!-- Mini Kalender Interaktif -->
+                        <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-bold text-slate-900 flex items-center gap-2 text-sm">
+                                    <i class="ph ph-calendar text-primary"></i> <span id="mini-cal-month-title">Bulan</span>
+                                </h3>
+                                <div class="flex gap-1">
+                                    <button onclick="changeMiniMonth(-1)" class="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs text-slate-700 transition-colors"><i class="ph ph-caret-left font-bold"></i></button>
+                                    <button onclick="changeMiniMonth(1)" class="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs text-slate-700 transition-colors"><i class="ph ph-caret-right font-bold"></i></button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 mb-2">
+                                <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 text-center text-xs" id="mini-calendar-grid">
+                                <!-- Injected Mini Calendar -->
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                                <span id="mini-holiday-info" class="truncate text-[11px] text-rose-600 font-medium">Memuat info libur...</span>
+                                <button onclick="switchTab('kalender')" class="text-primary font-semibold hover:underline shrink-0">Buka</button>
+                            </div>
+                        </div>
+
+                        <!-- Card Pintasan Cepat & Ringkasan -->
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
+                            <!-- Logo Samar SAKUKU di Background -->
+                            <div class="absolute -right-4 -bottom-6 opacity-15 pointer-events-none select-none rotate-12">
+                                <img src="logo-icon.png" alt="Logo SAKUKU Watermark" class="w-40 h-40 object-contain brightness-0 invert">
+                            </div>
+                            <div class="relative z-10">
+                                <span class="bg-white/10 text-blue-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block mb-2">Pintasan Cepat</span>
+                                <h4 class="font-bold text-base mb-1">Mulai Aktivitas</h4>
+                                <p class="text-xs text-slate-300 mb-4 leading-relaxed">Pindai struk belanja dengan kamera AI atau catat catatan penting Anda seketika.</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="openModal('modal-uang')" class="bg-primary hover:bg-sky-600 text-white font-bold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                                        <i class="ph-bold ph-scan"></i> Scan AI
+                                    </button>
+                                    <button onclick="openModal('modal-catatan')" class="bg-slate-700/80 hover:bg-slate-700 text-white font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 border border-slate-600/50">
+                                        <i class="ph-bold ph-plus"></i> Catatan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: KEUANGAN -->
+            <div id="tab-keuangan" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Catatan Keuangan</h2>
+                        <p class="text-xs text-slate-500">Pantau arus kas pemasukan, pengeluaran, dan scan struk AI otomatis.</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="openModal('modal-uang')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                            <i class="ph-bold ph-plus"></i> Transaksi Baru
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Ringkasan Keuangan -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Total Pemasukan</p>
+                        <h3 class="text-sm sm:text-2xl font-extrabold text-emerald-600 mt-0.5 sm:mt-1 truncate" id="keuangan-total-masuk">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                        <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Total Pengeluaran</p>
+                        <h3 class="text-sm sm:text-2xl font-extrabold text-rose-600 mt-0.5 sm:mt-1 truncate" id="keuangan-total-keluar">Rp 0</h3>
+                    </div>
+                    <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs col-span-2 sm:col-span-1">
+                        <p class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Saldo Kas Bersih</p>
+                        <h3 class="text-sm sm:text-2xl font-extrabold text-primary mt-0.5 sm:mt-1 truncate" id="keuangan-saldo-bersih">Rp 0</h3>
+                    </div>
+                </div>
+
+                <!-- Daftar Transaksi -->
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 class="font-bold text-slate-900 text-sm">Riwayat Transaksi Lengkap</h3>
+                    </div>
+                    <div class="flex flex-col divide-y divide-slate-100" id="uang-list">
+                        <!-- Injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: JADWAL -->
+            <div id="tab-jadwal" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Jadwal & Agenda Kegiatan</h2>
+                        <p class="text-xs text-slate-500">Kelola daftar tugas dan jadwal penting Anda.</p>
+                    </div>
+                    <button onclick="openModal('modal-jadwal')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> Tambah Jadwal
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4" id="jadwal-list-full">
+                    <!-- Injected -->
+                </div>
+            </div>
+
+            <!-- TAB: KALENDER -->
+            <div id="tab-kalender" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Kalender & Hari Libur Nasional</h2>
+                        <p class="text-xs text-slate-500">Tanggal merah dan jadwal tersinkronisasi otomatis secara realtime.</p>
+                    </div>
+                    <button onclick="openModal('modal-jadwal')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> Tambah Jadwal
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Kalender Grid (8 Kolom di LG) -->
+                    <div class="lg:col-span-8 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 md:p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-bold text-slate-900" id="calendar-month-year">Bulan Tahun</h3>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changeMonth(-1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-800 transition-colors"><i class="ph ph-caret-left font-bold"></i></button>
+                                <button onclick="changeMonth(1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-800 transition-colors"><i class="ph ph-caret-right font-bold"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-7 gap-2 text-center font-bold text-xs text-slate-400 mb-3">
+                            <span class="text-rose-500">Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+                        </div>
+
+                        <div class="grid grid-cols-7 gap-2" id="calendar-grid">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+
+                    <!-- Detail Kegiatan Tanggal Terpilih (4 Kolom di LG) -->
+                    <div class="lg:col-span-4 bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 md:p-6 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-900 mb-3 flex items-center gap-2 text-sm">
+                                <i class="ph ph-calendar-blank text-primary text-base"></i> Agenda pada <span id="selected-date-label" class="text-primary font-bold">-</span>
+                            </h3>
+                            <div id="selected-date-holiday-banner" class="mb-3"></div>
+                            <div class="space-y-2" id="selected-date-activities">
+                                <p class="text-xs text-slate-500">Pilih tanggal pada kalender untuk melihat detail aktivitas.</p>
+                            </div>
+                        </div>
+                        <button onclick="openModal('modal-jadwal')" class="mt-6 w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-primary text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            <i class="ph-bold ph-plus"></i> Tambah Jadwal di Tanggal Ini
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: HABIT TRACKER -->
+            <div id="tab-habit" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Pelacak Kebiasaan (Habit)</h2>
+                        <p class="text-xs text-slate-500">Checklist harian untuk membangun rutinitas positif secara konsisten.</p>
+                    </div>
+                    <button onclick="openModal('modal-habit')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> Habit Baru
+                    </button>
+                </div>
+
+                <!-- Progress Bar Utama Habit -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="text-sm font-bold text-slate-900">Pencapaian Habit Hari Ini</span>
+                            <p class="text-xs text-slate-500" id="habit-progress-desc">0 dari 0 habit terlaksana</p>
+                        </div>
+                        <span class="text-lg font-extrabold text-primary" id="habit-progress-text">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <div id="habit-progress-bar" class="bg-primary h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Bagian 1: Perlu Dilakukan (Pending) -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Perlu Dilakukan Hari Ini
+                            <span class="text-xs bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full border border-amber-200" id="badge-count-pending">0</span>
+                        </h3>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5" id="habit-list-pending">
+                        <!-- Injected -->
+                    </div>
+                </div>
+
+                <!-- Bagian 2: Sudah Terlaksana (Done) -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Sudah Terlaksana
+                            <span class="text-xs bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full border border-emerald-200" id="badge-count-done">0</span>
+                        </h3>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5" id="habit-list-done">
+                        <!-- Injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: CATATAN -->
+            <div id="tab-catatan" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Catatan & Pengingat</h2>
+                        <p class="text-xs text-slate-500">Simpan ide cepat, catatan pekerjaan, dan informasi penting.</p>
+                    </div>
+                    <button onclick="openModal('modal-catatan')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> Buat Catatan
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="catatan-list-full">
+                    <!-- Injected -->
+                </div>
+            </div>
+
+            <!-- TAB: PIUTANG -->
+            <div id="tab-hutang" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 sm:gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Piutang & Pinjaman</h2>
+                        <p class="text-xs text-slate-500">Catat dan pantau riwayat cicilan piutang teman secara rapi.</p>
+                    </div>
+                    <button onclick="openModal('modal-hutang')" class="w-full sm:w-auto bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> Catat Piutang
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="hutang-list">
+                    <!-- Injected -->
+                </div>
+            </div>
+
+            <!-- TAB: PENGATURAN & API KEY AI -->
+            <div id="tab-pengaturan" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Pengaturan Profil & AI</h2>
+                        <p class="text-xs text-slate-500">Kelola identitas aplikasi dan konfigurasi Gemini AI.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 md:p-8 max-w-3xl">
+                    <form id="form-pengaturan" onsubmit="event.preventDefault(); savePengaturan();" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-1">Nama Aplikasi</label>
+                            <input type="text" id="setting-app-name" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-primary font-medium text-slate-900 bg-white" placeholder="Contoh: MyDay" required>
+                            <p class="text-xs text-slate-500 mt-1">Nama yang tampil di pojok kiri atas (Logo).</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-1">Nama Panggilan Anda</label>
+                            <input type="text" id="setting-user-name" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-primary font-medium text-slate-900 bg-white" placeholder="Contoh: Admin" required>
+                            <p class="text-xs text-slate-500 mt-1">Sapaan Anda di layar Beranda.</p>
+                        </div>
+                        <hr class="border-slate-200 my-2">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-sm font-semibold text-slate-900">Gemini AI API Key (Untuk Scan Struk & OCR)</label>
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:text-blue-700 font-semibold inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-colors">
+                                    <i class="ph-bold ph-arrow-square-out"></i> Dapatkan Key Gratis
+                                </a>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <input type="password" id="setting-gemini-key" class="w-full px-4 py-3 pr-10 rounded-xl border border-slate-300 focus:outline-none focus:border-primary font-mono text-xs sm:text-sm text-slate-900 bg-white shadow-xs" placeholder="AIzaSy... (39 karakter)">
+                                    <button type="button" onclick="toggleApiKeyVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none" title="Lihat/Sembunyikan API Key">
+                                        <i id="gemini-key-eye-icon" class="ph ph-eye text-lg"></i>
+                                    </button>
+                                </div>
+                                <button type="button" onclick="testApiKey()" id="btn-test-key" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-4 py-3 rounded-xl transition-colors text-xs shrink-0 flex items-center gap-1.5 border border-slate-300 shadow-xs">
+                                    <i class="ph-bold ph-lightning text-primary"></i> Tes Koneksi
+                                </button>
+                            </div>
+                            
+                            <!-- Status Indikator Koneksi -->
+                            <div id="gemini-key-status" class="hidden"></div>
+
+                            <!-- Kotak Edukasi & Panduan Cepat -->
+                            <div class="mt-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3.5 text-xs text-slate-700 space-y-2">
+                                <div class="flex items-center gap-1.5 font-bold text-primary text-xs">
+                                    <i class="ph-fill ph-info text-base"></i> Kenapa API Key Sering Gagal?
+                                </div>
+                                <ul class="space-y-1.5 text-[11px] leading-relaxed text-slate-600 pl-1">
+                                    <li class="flex items-start gap-1.5">
+                                        <i class="ph-bold ph-x-circle text-red-500 shrink-0 mt-0.5 text-xs"></i>
+                                        <span><b>Salah Menggunakan Key Firebase:</b> Jangan gunakan API Key bawaan Firebase/proyek ini karena diblokir oleh Google untuk Gemini AI.</span>
+                                    </li>
+                                    <li class="flex items-start gap-1.5">
+                                        <i class="ph-bold ph-x-circle text-red-500 shrink-0 mt-0.5 text-xs"></i>
+                                        <span><b>Terselip Spasi atau Tanda Petik:</b> Klik ikon mata di sebelah kanan input untuk memastikan tidak ada spasi atau tanda petik di awal/akhir kunci.</span>
+                                    </li>
+                                    <li class="flex items-start gap-1.5">
+                                        <i class="ph-bold ph-check-circle text-emerald-600 shrink-0 mt-0.5 text-xs"></i>
+                                        <span><b>Cara Benar (1 Menit):</b> Buka <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-primary font-bold underline">Google AI Studio</a>, klik <b>Create API key</b>, lalu salin kuncinya (diawali <code>AIzaSy...</code>) ke sini.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <button type="submit" class="w-full md:w-auto bg-primary text-white font-semibold py-3 px-8 rounded-xl hover:bg-blue-700 transition-colors shadow-sm">Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ================= MODALS ================= -->
+    
+    <!-- Modal Aksi Cepat Mobile (Center Button Bottom Sheet) -->
+    <div id="modal-quick-actions" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[200] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-slate-200 max-h-[85vh] overflow-y-auto">
+            <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden"></div>
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Aksi Cepat</h3>
+                    <p class="text-xs text-slate-500">Pilih aktivitas yang ingin dicatat</p>
+                </div>
+                <button onclick="closeModal('modal-quick-actions')" class="text-slate-400 hover:text-slate-700 p-1"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2.5">
+                <!-- Scan Struk AI -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-uang');" class="p-3.5 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50/60 border border-blue-200/80 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-scan"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Scan Struk AI</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Kamera / File OCR</p>
+                    </div>
+                </button>
+
+                <!-- Transaksi Keuangan -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-uang');" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-plus"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Catat Keuangan</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Uang Masuk / Keluar</p>
+                    </div>
+                </button>
+
+                <!-- Agenda / Jadwal -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-jadwal');" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-calendar-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Tambah Jadwal</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Agenda Kegiatan</p>
+                    </div>
+                </button>
+
+                <!-- Target Habit -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-habit');" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-teal-500 text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-check-square-offset"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Habit Baru</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Target Rutinitas</p>
+                    </div>
+                </button>
+
+                <!-- Catatan Ide -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-catatan');" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-notebook"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Buat Catatan</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Ide & Pengingat</p>
+                    </div>
+                </button>
+
+                <!-- Piutang Baru -->
+                <button onclick="closeModal('modal-quick-actions'); openModal('modal-hutang');" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left hover:border-primary transition-all flex flex-col justify-between group active:scale-95 shadow-2xs">
+                    <div class="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center text-xl mb-2.5 shadow-sm">
+                        <i class="ph-bold ph-hand-coins"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-primary">Catat Piutang</p>
+                        <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Pinjaman Teman</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Menu Drawer Mobile (Lainnya) -->
+    <div id="modal-mobile-menu" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[200] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-slate-200 max-h-[85vh] overflow-y-auto">
+            <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden"></div>
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Semua Fitur</h3>
+                    <p class="text-xs text-slate-500">Pilih menu navigasi aplikasi</p>
+                </div>
+                <button onclick="closeModal('modal-mobile-menu')" class="text-slate-400 hover:text-slate-700 p-1"><i class="ph ph-x text-xl"></i></button>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="closeModal('modal-mobile-menu'); switchTab('kalender');" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 flex items-center gap-3 transition-colors text-left active:scale-[0.98]">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-primary flex items-center justify-center text-xl shrink-0">
+                        <i class="ph-bold ph-calendar"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-900">Kalender & Libur Nasional</p>
+                        <p class="text-[10px] text-slate-500 truncate">Tanggal merah dan jadwal realtime</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-400"></i>
+                </button>
+
+                <button onclick="closeModal('modal-mobile-menu'); switchTab('habit');" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 flex items-center gap-3 transition-colors text-left active:scale-[0.98]">
+                    <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph-bold ph-check-square-offset"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-900">Pelacak Kebiasaan (Habit)</p>
+                        <p class="text-[10px] text-slate-500 truncate">Checklist dan target rutinitas harian</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-400"></i>
+                </button>
+
+                <button onclick="closeModal('modal-mobile-menu'); switchTab('catatan');" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 flex items-center gap-3 transition-colors text-left active:scale-[0.98]">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph-bold ph-notebook"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-900">Catatan & Ide</p>
+                        <p class="text-[10px] text-slate-500 truncate">Simpan catatan penting dan memo</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-400"></i>
+                </button>
+
+                <button onclick="closeModal('modal-mobile-menu'); switchTab('hutang');" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 flex items-center gap-3 transition-colors text-left active:scale-[0.98]">
+                    <div class="w-10 h-10 rounded-xl bg-orange-100 text-accent-dark flex items-center justify-center text-xl shrink-0">
+                        <i class="ph-bold ph-hand-coins"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-900">Piutang & Pinjaman</p>
+                        <p class="text-[10px] text-slate-500 truncate">Catat dan pantau cicilan pinjaman</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-400"></i>
+                </button>
+
+                <button onclick="closeModal('modal-mobile-menu'); switchTab('pengaturan');" class="w-full p-3 rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 flex items-center gap-3 transition-colors text-left active:scale-[0.98]">
+                    <div class="w-10 h-10 rounded-xl bg-slate-200 text-slate-800 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph-bold ph-gear"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-slate-900">Pengaturan Profil & AI</p>
+                        <p class="text-[10px] text-slate-500 truncate">Identitas aplikasi & API Key Gemini</p>
+                    </div>
+                    <i class="ph ph-caret-right text-slate-400"></i>
+                </button>
+
+                <div class="pt-2">
+                    <button onclick="closeModal('modal-mobile-menu'); logout();" class="w-full p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center gap-2 font-bold text-xs transition-colors active:scale-[0.98]">
+                        <i class="ph-bold ph-sign-out text-base"></i> Keluar dari Akun
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Uang (Dilengkapi Scan Struk Kamera Fisik & Upload AI OCR) -->
+    <div id="modal-uang" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-200">
+            <button onclick="closeModal('modal-uang')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-4 text-gray-900">Catat Transaksi</h3>
+            
+            <!-- Fitur Upload & Kamera Fisik AI OCR -->
+            <div class="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-2xl relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 opacity-10 text-blue-600">
+                    <i class="ph-bold ph-scan text-8xl"></i>
+                </div>
+                <label class="block text-xs font-bold text-blue-900 mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                    <i class="ph-bold ph-scan text-base text-blue-600"></i> AI Smart Scanner Struk / QR
+                </label>
+                <p class="text-[11px] text-gray-700 mb-3">Pindai struk belanja atau QR pembayaran menggunakan kamera atau file. Foto diproses aman dan tidak disimpan.</p>
+                
+                <div class="grid grid-cols-2 gap-2 relative z-10">
+                    <button type="button" onclick="openCameraModal()" class="bg-blue-600 text-white py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md">
+                        <i class="ph-bold ph-camera text-base"></i> Buka Kamera
+                    </button>
+                    <label class="cursor-pointer bg-white text-gray-800 border border-gray-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-all shadow-sm">
+                        <i class="ph-bold ph-upload text-base text-gray-600"></i> Pilih File
+                        <input type="file" accept="image/*" class="hidden" onchange="handleStrukUpload(event)">
+                    </label>
+                </div>
+
+                <div id="ocr-loading" class="hidden mt-3 text-xs text-blue-700 font-medium flex items-center justify-center gap-2">
+                    <i class="ph ph-spinner animate-spin text-base"></i> Sedang memindai struk dengan AI...
+                </div>
+            </div>
+
+            <form onsubmit="event.preventDefault(); saveUang();" class="space-y-4">
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="uang-tipe" value="masuk" class="peer sr-only" checked>
+                        <div class="p-3 text-center border border-gray-300 rounded-xl peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 font-medium text-xs bg-white text-gray-800">Pemasukan</div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="uang-tipe" value="keluar" class="peer sr-only">
+                        <div class="p-3 text-center border border-gray-300 rounded-xl peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 font-medium text-xs bg-white text-gray-800">Pengeluaran</div>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Nominal (Rp)</label>
+                    <input type="number" id="uang-nominal" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Keterangan</label>
+                    <input type="text" id="uang-ket" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Contoh: Beli makan siang" required>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold mt-2 hover:bg-blue-700 shadow-md">Simpan Transaksi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Kamera Live -->
+    <div id="modal-camera" class="fixed inset-0 bg-black/90 z-[250] hidden flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm flex flex-col items-center relative">
+            <h3 class="text-sm font-semibold text-white mb-4 tracking-wider uppercase flex items-center gap-2">
+                <i class="ph-bold ph-scan text-blue-400 text-lg"></i> Posisikan Struk / QR di Dalam Kotak
+            </h3>
+            
+            <div class="relative w-full bg-black rounded-3xl overflow-hidden aspect-[3/4] flex items-center justify-center border border-white/20 shadow-2xl">
+                <video id="camera-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+
+                <!-- Viewfinder Frame -->
+                <div class="absolute inset-10 border-2 border-dashed border-blue-400/80 rounded-2xl flex flex-col justify-between p-4 pointer-events-none">
+                    <div class="flex justify-between">
+                        <div class="w-4 h-4 border-t-2 border-l-2 border-white"></div>
+                        <div class="w-4 h-4 border-t-2 border-r-2 border-white"></div>
+                    </div>
+                    <div class="w-full h-0.5 bg-blue-400 shadow-[0_0_10px_#60A5FA] animate-pulse"></div>
+                    <div class="flex justify-between">
+                        <div class="w-4 h-4 border-b-2 border-l-2 border-white"></div>
+                        <div class="w-4 h-4 border-b-2 border-r-2 border-white"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 w-full mt-6">
+                <button type="button" onclick="closeCameraModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 rounded-2xl text-xs transition-colors backdrop-blur-md">Batal</button>
+                <button type="button" onclick="captureCameraPhoto()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-2xl text-xs transition-colors shadow-lg flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-aperture text-lg"></i> Ambil Foto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Jadwal -->
+    <div id="modal-jadwal" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-gray-200 max-h-[90dvh] overflow-y-auto my-auto">
+            <button onclick="closeModal('modal-jadwal')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-4 text-gray-900">Tambah Jadwal</h3>
+            <form onsubmit="event.preventDefault(); saveJadwal();" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Tanggal</label>
+                    <input type="date" id="jadwal-tanggal" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Jam Mulai</label>
+                    <input type="time" id="jadwal-jam" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Aktivitas</label>
+                    <input type="text" id="jadwal-ket" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Contoh: Meeting via Zoom" required>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold mt-2 hover:bg-blue-700 shadow-md">Simpan Jadwal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Habit Baru -->
+    <div id="modal-habit" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-gray-200 max-h-[90dvh] overflow-y-auto my-auto">
+            <button onclick="closeModal('modal-habit')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-4 text-gray-900">Tambah Habit Harian</h3>
+            <form onsubmit="event.preventDefault(); saveHabit();" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Nama Kebiasaan</label>
+                    <input type="text" id="habit-nama" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Contoh: Minum air putih 2 Liter" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Target Jam / Waktu Pelaksanaan</label>
+                    <input type="time" id="habit-jam" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white">
+                    <p class="text-[11px] text-slate-500 mt-1">Opsional: Tentukan jam target agar kebiasaan terjadwal teratur.</p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Keterangan / Target</label>
+                    <input type="text" id="habit-ket" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Contoh: Setiap pagi dan sore" required>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold mt-2 hover:bg-blue-700 shadow-md">Simpan Habit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Catatan -->
+    <div id="modal-catatan" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-gray-200 max-h-[90dvh] overflow-y-auto my-auto">
+            <button onclick="closeModal('modal-catatan')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-4 text-gray-900">Buat Catatan</h3>
+            <form onsubmit="event.preventDefault(); saveCatatan();" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Judul Singkat</label>
+                    <input type="text" id="cat-judul" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Isi Catatan</label>
+                    <textarea id="cat-isi" rows="4" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required></textarea>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="cat-pin" class="w-5 h-5 text-primary rounded border-gray-300">
+                    <span class="text-sm text-gray-900">Sematkan ke Beranda (Pin)</span>
+                </label>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold mt-2 hover:bg-blue-700 shadow-md">Simpan Catatan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Hutang Baru -->
+    <div id="modal-hutang" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-gray-200 max-h-[90dvh] overflow-y-auto my-auto">
+            <button onclick="closeModal('modal-hutang')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-4 text-gray-900">Catat Piutang Baru</h3>
+            <form onsubmit="event.preventDefault(); saveHutangBaru();" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Nama Peminjam</label>
+                    <input type="text" id="hutang-nama" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Siapa yang hutang?" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Total Hutang (Rp)</label>
+                    <input type="number" id="hutang-total" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Keterangan / Alasan</label>
+                    <input type="text" id="hutang-ket" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Contoh: Pinjam buat beli tiket" required>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold mt-2 hover:bg-blue-700 shadow-md">Simpan Piutang</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Bayar Cicilan -->
+    <div id="modal-bayar-hutang" class="fixed inset-0 bg-black/50 z-[200] hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl relative border border-gray-200 max-h-[90dvh] overflow-y-auto my-auto">
+            <button onclick="closeModal('modal-bayar-hutang')" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <h3 class="text-lg font-bold mb-1 text-gray-900">Terima Pembayaran</h3>
+            <p class="text-sm text-gray-600 mb-4">Catat cicilan. Uang akan otomatis masuk ke menu Keuangan.</p>
+            
+            <form onsubmit="event.preventDefault(); saveCicilan();" class="space-y-4">
+                <input type="hidden" id="cicilan-id-hutang">
+                <input type="hidden" id="cicilan-nama-hutang">
+                
+                <div>
+                    <label class="block text-sm text-gray-900 mb-1">Nominal Dibayar (Rp)</label>
+                    <input type="number" id="cicilan-nominal" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-primary outline-none text-gray-900 bg-white" placeholder="Masukkan jumlah cicilan" required>
+                </div>
+                <button type="submit" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold mt-2 hover:bg-green-600 shadow-md">Simpan & Masukkan Kas</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCA44Fi4dPtYHNs7-NTMAVHesqJUHYyMfo",
+            authDomain: "myday-d6ee5.firebaseapp.com",
+            projectId: "myday-d6ee5",
+            storageBucket: "myday-d6ee5.firebasestorage.app",
+            messagingSenderId: "350720886504",
+            appId: "1:350720886504:web:a293466c22d6fb7a0d6b5d",
+            measurementId: "G-R8NMGXGLEF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentUserRole = 'admin'; 
+        let cameraStream = null;
+
+        window.fmtRp = (num) => "Rp " + parseInt(num || 0).toLocaleString('id-ID');
+        window.formatDateFull = (ts) => {
+            const d = new Date(ts);
+            const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()} - ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        window.showToast = function(message, type = "success") {
+            const tc = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === "success" ? "bg-green-500" : type === "error" ? "bg-red-500" : "bg-blue-500";
+            const icon = type === "success" ? "ph-check-circle" : type === "error" ? "ph-warning-circle" : "ph-info";
+            
+            toast.className = `toast-enter ${colors} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[250px]`;
+            toast.innerHTML = `<i class="ph-fill ${icon} text-xl"></i> <span class="text-sm font-medium">${message}</span>`;
+            tc.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Helper Tanggal Lokal Real-time (Anti-Bug UTC / Offset Timezone Indonesia)
+        function getLocalDateStr(d = new Date()) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let todayDateStr = getLocalDateStr(new Date());
+        let currentCalendarDate = new Date();
+        let currentMiniCalendarDate = new Date();
+        let selectedDateStr = todayDateStr;
+
+        // Auto-refresh real-time jika hari berganti (misal tengah malam atau saat browser aktif kembali)
+        function checkRealtimeDateChange() {
+            const freshToday = getLocalDateStr(new Date());
+            if(freshToday !== todayDateStr) {
+                console.log("Hari berganti real-time dari", todayDateStr, "ke", freshToday);
+                todayDateStr = freshToday;
+                selectedDateStr = freshToday;
+                currentCalendarDate = new Date();
+                currentMiniCalendarDate = new Date();
+                const tglInput = document.getElementById('jadwal-tanggal');
+                if(tglInput) tglInput.value = todayDateStr;
+                const dateEl = document.getElementById('desktop-date');
+                if(dateEl) {
+                    dateEl.innerHTML = '<i class="ph ph-calendar text-primary"></i> ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                }
+                if(typeof currentUser !== 'undefined' && currentUser && typeof loadCloudData === 'function') {
+                    loadCloudData();
+                } else if(typeof renderCalendar === 'function') {
+                    renderCalendar();
+                    renderMiniCalendar();
+                }
+            }
+        }
+        setInterval(checkRealtimeDateChange, 30000);
+        window.addEventListener('focus', checkRealtimeDateChange);
+        let globalJadwalData = [];
+        let holidayCache = {};
+
+        // Mode Login vs Register
+        let isRegisterMode = false;
+        window.toggleAuthMode = function() {
+            isRegisterMode = !isRegisterMode;
+            const titleEl = document.getElementById('auth-title');
+            const subtitleEl = document.getElementById('auth-subtitle');
+            const btnTextEl = document.getElementById('auth-btn-text');
+            const toggleBtnEl = document.getElementById('auth-mode-toggle');
+
+            if (isRegisterMode) {
+                if (titleEl) titleEl.innerText = "Daftar Akun MyDay";
+                if (subtitleEl) subtitleEl.innerText = "Buat akun baru untuk menyimpan data Anda";
+                if (btnTextEl) btnTextEl.innerText = "Daftar Sekarang";
+                if (toggleBtnEl) toggleBtnEl.innerText = "Sudah punya akun? Masuk di sini";
+            } else {
+                if (titleEl) titleEl.innerText = "Login MyDay";
+                if (subtitleEl) subtitleEl.innerText = "Masuk untuk mengelola harimu";
+                if (btnTextEl) btnTextEl.innerText = "Masuk";
+                if (toggleBtnEl) toggleBtnEl.innerText = "Belum punya akun? Daftar akun baru";
+            }
+        };
+
+        window.handleGuestLogin = async function() {
+            try {
+                showToast("Menghubungkan sebagai tamu...");
+                await signInAnonymously(auth);
+                showToast("Berhasil masuk sebagai tamu!");
+            } catch (err) {
+                console.error("Guest login error:", err);
+                showToast("Gagal masuk tamu. Pastikan Anonymous Auth aktif di Firebase.", "error");
+            }
+        };
+
+        window.handleAuthSubmit = async function() {
+            let email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-pass').value;
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const btnText = document.getElementById('auth-btn-text');
+
+            if (!email || !password) {
+                showToast("Harap isi email dan password", "error");
+                return;
+            }
+
+            if (!email.includes('@')) {
+                email = email + "@gmail.com";
+                document.getElementById('login-email').value = email;
+            }
+
+            if (submitBtn) submitBtn.disabled = true;
+            const prevText = btnText ? btnText.innerText : 'Masuk';
+            if (btnText) btnText.innerText = "Memproses...";
+
+            try {
+                if (isRegisterMode) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showToast("Pendaftaran berhasil! Selamat datang.");
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showToast("Berhasil masuk!");
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+                let msg = "Gagal memproses autentikasi.";
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        msg = "Format email tidak valid (contoh: user@gmail.com).";
+                        break;
+                    case 'auth/user-not-found':
+                        msg = "Akun belum terdaftar. Silakan klik 'Daftar akun baru'.";
+                        break;
+                    case 'auth/wrong-password':
+                    case 'auth/invalid-credential':
+                        msg = "Email atau password salah. Silakan coba lagi.";
+                        break;
+                    case 'auth/email-already-in-use':
+                        msg = "Email ini sudah terdaftar. Silakan klik 'Masuk di sini'.";
+                        break;
+                    case 'auth/weak-password':
+                        msg = "Password terlalu lemah, minimal 6 karakter.";
+                        break;
+                    case 'auth/operation-not-allowed':
+                        msg = "Metode login ini belum diaktifkan di Firebase Console.";
+                        break;
+                    case 'auth/network-request-failed':
+                        msg = "Koneksi internet bermasalah. Coba periksa jaringan Anda.";
+                        break;
+                    case 'auth/too-many-requests':
+                        msg = "Terlalu banyak percobaan. Silakan tunggu beberapa saat.";
+                        break;
+                    default:
+                        msg = error.message || "Gagal masuk. Periksa kembali data Anda.";
+                }
+                showToast(msg, "error");
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+                if (btnText) btnText.innerText = prevText;
+            }
+        };
+
+        window.handleLogin = window.handleAuthSubmit;
+
+        // Firebase Auth State
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('login-screen').classList.add('hidden');
+                await loadCloudData();
+                switchTab('dashboard');
+            } else {
+                currentUser = null;
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        });
+
+        window.logout = function() {
+            signOut(auth).then(() => location.reload());
+        }
+
+        window.onload = () => {
+            todayDateStr = getLocalDateStr(new Date());
+            selectedDateStr = todayDateStr;
+            const tglEl = document.getElementById('jadwal-tanggal');
+            if(tglEl) tglEl.value = todayDateStr;
+            const dateEl = document.getElementById('desktop-date');
+            if(dateEl) {
+                dateEl.innerHTML = '<i class="ph ph-calendar text-primary"></i> ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            const savedKey = localStorage.getItem('myday_gemini_key');
+            const keyInput = document.getElementById('setting-gemini-key');
+            if(savedKey && keyInput && !keyInput.value) {
+                keyInput.value = savedKey;
+            }
+            renderCalendar();
+            renderMiniCalendar();
+        }
+
+        async function fetchHolidays(year) {
+            if(holidayCache[year]) return holidayCache[year];
+            try {
+                const res = await fetch(`https://dayoffapi.vercel.app/api?year=${year}`);
+                const data = await res.json();
+                let map = {};
+                if(Array.isArray(data)) {
+                    data.forEach(h => { map[h.tanggal] = h.keterangan; });
+                }
+                holidayCache[year] = map;
+                return map;
+            } catch(e) { return {}; }
+        }
+
+        window.toggleApiKeyVisibility = function() {
+            const input = document.getElementById('setting-gemini-key');
+            const icon = document.getElementById('gemini-key-eye-icon');
+            if(!input || !icon) return;
+            if(input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'ph ph-eye-slash text-lg text-primary';
+            } else {
+                input.type = 'password';
+                icon.className = 'ph ph-eye text-lg text-slate-400';
+            }
+        }
+
+        // --- Gemini AI Dynamic Model Discovery & Multi-Model Multi-Version Fallback ---
+        async function fetchAvailableModels(apiKey) {
+            const versions = ['v1beta', 'v1'];
+            let detected = [];
+            let lastErr = null;
+
+            for(const v of versions) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/${v}/models?key=${apiKey}`);
+                    if(res.ok) {
+                        const data = await res.json();
+                        const list = (data.models || [])
+                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                            .map(m => ({
+                                version: v,
+                                model: m.name.replace(/^models\//, ''),
+                                displayName: m.displayName || m.name
+                            }));
+                        if(list.length > 0) {
+                            detected.push(...list);
+                        }
+                    } else {
+                        const err = await res.json().catch(() => null);
+                        lastErr = err;
+                    }
+                } catch(e) {
+                    lastErr = e;
+                }
+            }
+            return { detected, lastErr };
+        }
+
+        async function callGeminiAPI(apiKey, payload) {
+            // 1. Coba config aktif yang sudah pernah tersimpan & terbukti berhasil
+            let savedConfig = null;
+            try {
+                const raw = localStorage.getItem('myday_gemini_active_config');
+                if(raw) savedConfig = JSON.parse(raw);
+            } catch(e) {}
+
+            let candidateQueue = [];
+
+            if(savedConfig && savedConfig.version && savedConfig.model) {
+                candidateQueue.push(savedConfig);
+            }
+
+            // 2. Ambil daftar model otomatis langsung dari Google untuk API key ini (ListModels)
+            const { detected, lastErr: listErr } = await fetchAvailableModels(apiKey);
+            
+            if(detected.length > 0) {
+                const prefOrder = [
+                    'gemini-2.0-flash',
+                    'gemini-1.5-flash',
+                    'gemini-1.5-flash-002',
+                    'gemini-1.5-flash-001',
+                    'gemini-1.5-flash-8b',
+                    'gemini-2.0-flash-exp',
+                    'gemini-2.5-flash',
+                    'gemini-1.5-pro',
+                    'gemini-pro'
+                ];
+                for(const p of prefOrder) {
+                    const found = detected.filter(d => d.model.toLowerCase() === p || d.model.toLowerCase().startsWith(p));
+                    candidateQueue.push(...found);
+                }
+                for(const d of detected) {
+                    if(!candidateQueue.some(c => c.model === d.model && c.version === d.version)) {
+                        candidateQueue.push(d);
+                    }
+                }
+            }
+
+            // 3. Fallback komprehensif jika ListModels dibatasi atau tidak mengembalikan data
+            const fallbackList = [
+                { version: 'v1beta', model: 'gemini-1.5-flash' },
+                { version: 'v1',     model: 'gemini-1.5-flash' },
+                { version: 'v1beta', model: 'gemini-2.0-flash' },
+                { version: 'v1',     model: 'gemini-2.0-flash' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-002' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-001' },
+                { version: 'v1beta', model: 'gemini-2.0-flash-exp' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-8b' },
+                { version: 'v1beta', model: 'gemini-1.5-pro' },
+                { version: 'v1',     model: 'gemini-1.5-pro' },
+                { version: 'v1beta', model: 'gemini-pro' },
+                { version: 'v1',     model: 'gemini-pro' }
+            ];
+
+            for(const fb of fallbackList) {
+                if(!candidateQueue.some(c => c.model === fb.model && c.version === fb.version)) {
+                    candidateQueue.push(fb);
+                }
+            }
+
+            let lastRes = null;
+            let lastError = listErr || null;
+
+            for(const item of candidateQueue) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/${item.version}/models/${item.model}:generateContent?key=${apiKey}`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if(res.ok) {
+                        const data = await res.json();
+                        localStorage.setItem('myday_gemini_active_config', JSON.stringify({ version: item.version, model: item.model }));
+                        return { ok: true, data, model: item.model, version: item.version };
+                    } else {
+                        lastRes = res;
+                        const err = await res.json().catch(() => null);
+                        lastError = err;
+                        const reason = err?.error?.details?.[0]?.reason || err?.error?.status || "";
+                        const msg = err?.error?.message || "";
+                        // Jika API key secara fundamental tidak valid atau diblokir permanen, hentikan loop
+                        if(res.status === 400 && (reason === "API_KEY_INVALID" || msg.includes("API key not valid"))) break;
+                        if(res.status === 403 && (reason === "API_KEY_SERVICE_BLOCKED" || msg.includes("blocked"))) break;
+                    }
+                } catch(e) {
+                    lastError = e;
+                }
+            }
+
+            return { ok: false, status: lastRes ? lastRes.status : 500, error: lastError, attempted: candidateQueue.length };
+        }
+
+        window.testApiKey = async function() {
+            const inputEl = document.getElementById('setting-gemini-key');
+            const statusEl = document.getElementById('gemini-key-status');
+            const testBtn = document.getElementById('btn-test-key');
+            
+            let apiKey = (inputEl ? inputEl.value : '').trim().replace(/^["']+|["']+$/g, '');
+            if(!apiKey) {
+                apiKey = (localStorage.getItem('myday_gemini_key') || '').trim().replace(/^["']+|["']+$/g, '');
+            }
+            if(inputEl) inputEl.value = apiKey;
+
+            if(!apiKey) { 
+                showToast("Masukkan API Key terlebih dahulu!", "error"); 
+                if(statusEl) {
+                    statusEl.className = "mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 flex items-center gap-2";
+                    statusEl.innerHTML = '<i class="ph-bold ph-warning-circle text-base"></i> <span>Masukkan API Key terlebih dahulu.</span>';
+                    statusEl.classList.remove('hidden');
+                }
+                return; 
+            }
+
+            if(apiKey === "AIzaSyCA44Fi4dPtYHNs7-NTMAVHesqJUHYyMfo") {
+                showToast("Ini adalah API Key Firebase bawaan, bukan Gemini AI! Dapatkan kunci di Google AI Studio.", "error");
+                if(statusEl) {
+                    statusEl.className = "mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2 leading-relaxed";
+                    statusEl.innerHTML = '<i class="ph-bold ph-x-circle text-base shrink-0 mt-0.5 text-red-600"></i> <div><b>API Key Firebase Terdeteksi!</b> Kunci ini adalah API key Firebase bawaan database. Buat API Key Gemini gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary">Google AI Studio</a>.</div>';
+                    statusEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if(apiKey.startsWith("sk-")) {
+                showToast("Kunci ini adalah API Key OpenAI. Fitur ini memerlukan Google Gemini API Key.", "error");
+                if(statusEl) {
+                    statusEl.className = "mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2 leading-relaxed";
+                    statusEl.innerHTML = '<i class="ph-bold ph-warning text-base shrink-0 mt-0.5 text-amber-600"></i> <div><b>Kunci OpenAI Terdeteksi:</b> Aplikasi ini menggunakan Google Gemini AI. Dapatkan Gemini API Key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary">Google AI Studio</a>.</div>';
+                    statusEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            showToast("Mendeteksi model & menguji koneksi ke server Gemini...", "info");
+            if(testBtn) {
+                testBtn.disabled = true;
+                testBtn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-primary"></i> Menguji...';
+            }
+
+            try {
+                const res = await callGeminiAPI(apiKey, { contents: [{ parts: [{ text: "ping" }] }] });
+
+                if(res.ok) {
+                    showToast(`API Key Berhasil Terhubung! ✅ (Model: ${res.model})`, "success");
+                    localStorage.setItem('myday_gemini_key', apiKey);
+                    if(statusEl) {
+                        statusEl.className = "mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2";
+                        statusEl.innerHTML = `<i class="ph-bold ph-check-circle text-base text-emerald-600 shrink-0 mt-0.5"></i> <div><b>Koneksi Berhasil!</b> Terhubung ke model <b>${res.model}</b> (${res.version}). Fitur Scan Struk AI OCR siap digunakan.</div>`;
+                        statusEl.classList.remove('hidden');
+                    }
+                } else {
+                    const lastStatus = res.status;
+                    const lastError = res.error;
+                    console.error("Gemini API Connection Failed:", lastStatus, lastError);
+
+                    const reason = lastError?.error?.details?.[0]?.reason || lastError?.error?.status || "";
+                    const msg = lastError?.error?.message || "";
+                    let explanation = "Gagal terhubung. API Key tidak valid.";
+
+                    if(reason === "API_KEY_SERVICE_BLOCKED" || msg.includes("blocked")) {
+                        explanation = "Akses diblokir oleh Google! API Key ini tidak memiliki izin ke Generative Language API. Pastikan membuat API Key baru langsung di Google AI Studio.";
+                    } else if(reason === "API_KEY_INVALID" || msg.includes("API key not valid")) {
+                        explanation = "API Key tidak valid atau tidak terdaftar di Google. Pastikan menyalin seluruh karakter dari Google AI Studio.";
+                    } else if(lastStatus === 403) {
+                        explanation = "Akses ditolak (HTTP 403). Generative Language API belum diaktifkan di Google Cloud Project Anda, atau kunci dibatasi IP/referrer.";
+                    } else if(lastStatus === 429) {
+                        explanation = "Batas kuota gratis Google terlampaui (HTTP 429). Silakan tunggu 1 menit atau coba dengan akun Google lain.";
+                    } else if(lastStatus === 404) {
+                        explanation = `Model AI tidak ditemukan di Google untuk akun Anda (${msg || 'HTTP 404'}). Pastikan akun Google AI Studio Anda aktif.`;
+                    } else {
+                        explanation = `Gagal terhubung (Status ${lastStatus || 'Error'}): ${msg || 'Periksa kembali API Key Anda.'}`;
+                    }
+
+                    showToast(explanation, "error");
+
+                    if(statusEl) {
+                        statusEl.className = "mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2 leading-relaxed";
+                        statusEl.innerHTML = `<i class="ph-bold ph-x-circle text-base text-red-600 shrink-0 mt-0.5"></i> <div><b>Gagal Terhubung (Error ${lastStatus || 404}):</b> ${explanation}<br><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary mt-1 inline-block">Buka Google AI Studio untuk buat API Key baru gratis</a></div>`;
+                        statusEl.classList.remove('hidden');
+                    }
+                }
+            } catch(e) {
+                console.error("Gemini Network Error:", e);
+                showToast("Terjadi kesalahan jaringan saat tes koneksi.", "error");
+                if(statusEl) {
+                    statusEl.className = "mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2 leading-relaxed";
+                    statusEl.innerHTML = '<i class="ph-bold ph-warning-circle text-base text-amber-600 shrink-0 mt-0.5"></i> <div><b>Kesalahan Jaringan:</b> Tidak dapat menghubungi server Google. Pastikan internet aktif.</div>';
+                    statusEl.classList.remove('hidden');
+                }
+            } finally {
+                if(testBtn) {
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = '<i class="ph-bold ph-lightning text-primary"></i> Tes Koneksi';
+                }
+            }
+        }
+
+        window.openCameraModal = async function() {
+            const modal = document.getElementById('modal-camera');
+            const video = document.getElementById('camera-video');
+            modal.classList.replace('hidden', 'flex');
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                video.srcObject = cameraStream;
+            } catch(err) {
+                closeCameraModal();
+                showToast("Kamera tidak diizinkan. Menggunakan Pilih File...", "info");
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'file';
+                hiddenInput.accept = 'image/*';
+                hiddenInput.onchange = (e) => handleStrukUpload(e);
+                hiddenInput.click();
+            }
+        }
+
+        window.closeCameraModal = function() {
+            document.getElementById('modal-camera').classList.replace('flex', 'hidden');
+            if(cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        function compressImageForOCR(fileOrDataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Skala gambar maksimal 1024px: teks struk tetap sangat tajam dan jelas, 
+                    // tetapi ukuran payload turun drastis dari ~5MB menjadi hanya ~100KB (hemat kuota & respon AI 4x lebih cepat)
+                    const maxDim = 1024;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.onerror = () => resolve(typeof fileOrDataUrl === 'string' ? fileOrDataUrl : null);
+
+                if (typeof fileOrDataUrl === 'string') {
+                    img.src = fileOrDataUrl;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { img.src = e.target.result; };
+                    reader.readAsDataURL(fileOrDataUrl);
+                }
+            });
+        }
+
+        window.captureCameraPhoto = async function() {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            closeCameraModal();
+            showToast("Mengoptimalkan foto struk...", "info");
+            const optimized = await compressImageForOCR(rawDataUrl);
+            processImageForOCR(optimized, 'image/jpeg');
+        }
+
+        window.handleStrukUpload = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            showToast("Mengoptimalkan ukuran gambar...", "info");
+            const optimized = await compressImageForOCR(file);
+            processImageForOCR(optimized, 'image/jpeg');
+        }
+
+        function extractJSONFromText(text) {
+            if(!text) return null;
+            // 1. Coba parse langsung setelah strip markdown code block
+            try {
+                const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                return JSON.parse(clean);
+            } catch(e) {}
+
+            // 2. Ekstrak substring antara kurung kurawal pertama { dan kurung kurawal terakhir }
+            const firstBrace = text.indexOf('{');
+            const lastBrace = text.lastIndexOf('}');
+            if(firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                const sub = text.substring(firstBrace, lastBrace + 1);
+                try {
+                    return JSON.parse(sub);
+                } catch(e) {
+                    // Coba bersihkan trailing comma jika ada
+                    try {
+                        const noTrailingComma = sub.replace(/,\s*([}\]])/g, '$1');
+                        return JSON.parse(noTrailingComma);
+                    } catch(e2) {}
+                }
+            }
+
+            // 3. Fallback regex pencarian pasangan JSON
+            const match = text.match(/\{[\s\S]*?\}/);
+            if(match) {
+                try { return JSON.parse(match[0]); } catch(e) {}
+            }
+
+            return null;
+        }
+
+        async function processImageForOCR(dataUrl, mimeType) {
+            let keyInput = document.getElementById('setting-gemini-key');
+            let apiKey = (keyInput ? keyInput.value : '').trim().replace(/^["']+|["']+$/g, '');
+
+            if(!apiKey) {
+                apiKey = (localStorage.getItem('myday_gemini_key') || '').trim().replace(/^["']+|["']+$/g, '');
+                if(keyInput && apiKey) keyInput.value = apiKey;
+            }
+
+            if(!apiKey) {
+                showToast("Gemini API Key belum diatur di menu Profil / Pengaturan!", "error");
+                switchTab('pengaturan');
+                return;
+            }
+
+            const loadingEl = document.getElementById('ocr-loading');
+            if(loadingEl) loadingEl.classList.remove('hidden');
+            showToast("Menganalisis struk dengan Gemini AI...", "info");
+
+            try {
+                const base64Data = dataUrl.split(',')[1];
+                const today = new Date().toISOString().split('T')[0];
+                const prompt = `Analisis foto struk belanja ini. Kembalikan HANYA format JSON valid tanpa teks penjelasan, tanpa bullet point, dan tanpa pembuka/penutup apapun.
+Format JSON:
+{
+  "keterangan": "Nama Toko atau Barang",
+  "nominal": 50000,
+  "kategori": "Konsumsi",
+  "tanggal": "${today}"
+}
+Kategori harus salah satu dari: [Konsumsi, Transportasi, Belanja, Hiburan, Tagihan, Lainnya]. Jika tanggal tidak terbaca gunakan "${today}". Jika total nominal tidak terbaca, gunakan 0.`;
+
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } }
+                        ]
+                    }]
+                };
+
+                const res = await callGeminiAPI(apiKey, payload);
+                if(loadingEl) loadingEl.classList.add('hidden');
+
+                if(!res.ok) {
+                    const status = res.status;
+                    const err = res.error;
+                    console.error("Gemini OCR Error:", status, err);
+                    const msg = err?.error?.message || "";
+                    if(status === 403 || msg.includes("blocked")) {
+                        showToast("API Key Gemini tidak diizinkan atau diblokir. Pastikan buat key baru di Google AI Studio.", "error");
+                    } else if(status === 400) {
+                        showToast("API Key Gemini tidak valid. Periksa di menu Pengaturan.", "error");
+                    } else if(status === 429) {
+                        showToast("Batas kuota gratis Gemini tercapai. Tunggu 1 menit lalu coba lagi.", "warning");
+                    } else {
+                        showToast(`Gagal membaca struk: ${msg || 'Error ' + status}`, "error");
+                    }
+                    return;
+                }
+
+                const rawText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const result = extractJSONFromText(rawText);
+
+                if(!result) {
+                    console.warn("Could not extract JSON from raw response:", rawText);
+                    throw new Error("Format jawaban AI bukan JSON valid: " + rawText.substring(0, 60));
+                }
+
+                // Normalisasi nominal (antisipasi string atau angka berformat titik/koma)
+                let nominalVal = 0;
+                if(result.nominal !== undefined && result.nominal !== null) {
+                    if(typeof result.nominal === 'number') {
+                        nominalVal = result.nominal;
+                    } else {
+                        const cleanNum = String(result.nominal).replace(/[^0-9]/g, '');
+                        nominalVal = Number(cleanNum) || 0;
+                    }
+                }
+
+                // Otomatis buka form modal-uang dan isi nilai yang terdeteksi
+                openModal('modal-uang');
+                const radioKeluar = document.querySelector('input[name="uang-tipe"][value="keluar"]');
+                if(radioKeluar) radioKeluar.checked = true;
+                
+                document.getElementById('uang-nominal').value = nominalVal;
+                document.getElementById('uang-ket').value = result.keterangan || 'Belanja Struk';
+                
+                const tglInput = document.getElementById('uang-tgl');
+                if(tglInput) tglInput.value = result.tanggal || today;
+                
+                const katInput = document.getElementById('uang-kategori');
+                if(katInput && result.kategori) katInput.value = result.kategori;
+
+                showToast(`Struk berhasil dipindai AI OCR! (Model: ${res.model})`, "success");
+            } catch(e) {
+                if(loadingEl) loadingEl.classList.add('hidden');
+                console.error("OCR Exception:", e);
+                showToast("Gagal memproses struk: " + (e.message || "Format struk tidak terbaca"), "error");
+            }
+        }
+
+        window.switchTab = function(tabId) {
+            // Update desktop sidebar
+            document.querySelectorAll('.nav-item').forEach(el => {
+                if(!el.onclick || !el.onclick.toString().includes("openModal")) {
+                    el.classList.remove('bg-primary', 'text-white', 'font-semibold');
+                    el.classList.add('text-slate-400');
+                }
+            });
+            const activeNav = document.getElementById('nav-' + tabId);
+            if(activeNav) {
+                activeNav.classList.add('bg-primary', 'text-white', 'font-semibold');
+                activeNav.classList.remove('text-slate-400');
+            }
+
+            // Update mobile bottom nav
+            document.querySelectorAll('.mobile-nav-item').forEach(el => {
+                el.classList.remove('text-primary', 'font-semibold');
+                el.classList.add('text-slate-400');
+            });
+            const mobileActive = document.getElementById('mobile-nav-' + tabId);
+            const mobileMore = document.getElementById('mobile-nav-more');
+            const mobileMoreLabel = document.getElementById('mobile-nav-more-label');
+            const mobileMoreIcon = document.getElementById('mobile-nav-more-icon');
+
+            const titles = { 'dashboard':'Beranda', 'keuangan':'Keuangan', 'jadwal':'Jadwal', 'kalender':'Kalender', 'habit':'Habit Tracker', 'catatan':'Catatan', 'hutang':'Piutang', 'pengaturan': 'Profil & AI' };
+            const title = titles[tabId] || 'Aplikasi';
+
+            if(mobileActive) {
+                mobileActive.classList.add('text-primary', 'font-semibold');
+                mobileActive.classList.remove('text-slate-400');
+                if(mobileMoreLabel) mobileMoreLabel.innerText = 'Lainnya';
+                if(mobileMoreIcon) mobileMoreIcon.className = 'ph ph-dots-three-circle text-xl';
+            } else if(mobileMore) {
+                mobileMore.classList.add('text-primary', 'font-semibold');
+                mobileMore.classList.remove('text-slate-400');
+                if(mobileMoreLabel) mobileMoreLabel.innerText = title;
+                const iconMap = {
+                    'kalender': 'ph-bold ph-calendar text-xl',
+                    'habit': 'ph-bold ph-check-square-offset text-xl',
+                    'catatan': 'ph-bold ph-notebook text-xl',
+                    'hutang': 'ph-bold ph-hand-coins text-xl',
+                    'pengaturan': 'ph-bold ph-gear text-xl'
+                };
+                if(mobileMoreIcon && iconMap[tabId]) mobileMoreIcon.className = iconMap[tabId];
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            const targetTab = document.getElementById('tab-' + tabId);
+            if(targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.classList.add('block');
+            }
+            
+            const mTitle = document.getElementById('mobile-title');
+            if(mTitle) mTitle.innerText = title;
+
+            // Scroll main content to top on tab switch
+            const mainEl = document.querySelector('main');
+            if(mainEl) mainEl.scrollTop = 0;
+
+            if(tabId === 'kalender') { renderCalendar(); }
+        }
+
+        window.openModal = (id) => document.getElementById(id)?.classList.replace('hidden', 'flex');
+        window.closeModal = (id) => {
+            document.getElementById(id)?.classList.replace('flex', 'hidden');
+            document.querySelectorAll(`#${id} form`).forEach(f => f.reset());
+            if(id === 'modal-jadwal') document.getElementById('jadwal-tanggal').value = todayDateStr;
+        }
+
+        // --- Cloud Firestore Integration ---
+        
+        function handleFirestoreError(e, actionName = "menyimpan") {
+            console.error(`Firestore error (${actionName}):`, e);
+            if (e?.code === 'permission-denied') {
+                showToast(`Izin ditolak! Periksa tab Rules di Firestore Firebase Console.`, "error");
+            } else if (e?.code === 'not-found' || e?.message?.includes('database')) {
+                showToast(`Firestore Database belum dibuat di Firebase Console.`, "error");
+            } else if (e?.code === 'unavailable') {
+                showToast(`Layanan Firebase tidak dapat dijangkau (offline).`, "error");
+            } else {
+                showToast(`Gagal ${actionName}: ${e?.message || e?.code || 'Terjadi kesalahan'}`, "error");
+            }
+        }
+
+        async function loadCloudData() {
+            if(!currentUser) return;
+            try {
+                // Settings
+                const setSnap = await getDoc(doc(db, 'users', currentUser.uid, 'settings', 'config'));
+                let profil = { appName: 'MyDay', userName: 'Admin', geminiKey: '' };
+                if(setSnap.exists()) profil = setSnap.data();
+
+                // Collections
+                const getCol = async (name) => {
+                    const snap = await getDocs(collection(db, 'users', currentUser.uid, name));
+                    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                };
+
+                const keuangan = await getCol('keuangan');
+                const jadwal = await getCol('jadwal');
+                const habit = await getCol('habit');
+                const catatan = await getCol('catatan');
+                const hutang = await getCol('hutang');
+
+                renderAll(keuangan, jadwal, habit, catatan, hutang, profil);
+            } catch(e) {
+                console.error("Load cloud error:", e);
+                handleFirestoreError(e, "memuat data cloud");
+            }
+        }
+
+        async function renderAll(dUang, dJadwal, dHabit, dCatatan, dHutang, dProfil) {
+            todayDateStr = getLocalDateStr(new Date());
+            dJadwal.sort((a, b) => (a.tanggal || todayDateStr).localeCompare(b.tanggal || todayDateStr) || (a.jam || "00:00").localeCompare(b.jam || "00:00"));
+            globalJadwalData = dJadwal;
+
+            if(dProfil) {
+                document.getElementById('app-name-display').innerText = dProfil.appName || 'SINTAS';
+                document.getElementById('greet-name').innerText = dProfil.userName || 'Admin';
+                document.getElementById('user-name-display').innerText = dProfil.userName || 'Admin';
+                document.getElementById('user-avatar-text').innerText = (dProfil.userName || 'A').charAt(0).toUpperCase();
+                document.getElementById('setting-app-name').value = dProfil.appName || 'MyDay';
+                document.getElementById('setting-user-name').value = dProfil.userName || 'Admin';
+                document.getElementById('setting-gemini-key').value = dProfil.geminiKey || localStorage.getItem('myday_gemini_key') || '';
+            }
+
+            let totalMasuk = 0, totalKeluar = 0, keluarHariIni = 0;
+            const todayStr = new Date().toDateString();
+            let uangHtml = '';
+
+            dUang.forEach(u => {
+                const ts = u.timestamp || u.ts || Date.now();
+                if(u.tipe === 'masuk') totalMasuk += Number(u.nominal);
+                if(u.tipe === 'keluar') {
+                    totalKeluar += Number(u.nominal);
+                    if(getLocalDateStr(new Date(ts)) === todayDateStr) keluarHariIni += Number(u.nominal);
+                }
+                
+                uangHtml += `
+                <div class="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors gap-3">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${u.tipe==='masuk' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} shrink-0 text-base sm:text-xl">
+                            <i class="ph-fill ${u.tipe==='masuk' ? 'ph-trend-up' : 'ph-trend-down'}"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-gray-900 text-xs sm:text-sm truncate">${u.ket}</p>
+                            <p class="text-[10px] sm:text-xs text-gray-500">${new Date(ts).toLocaleDateString('id-ID', {day:'numeric', month:'short'})}</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="font-bold text-xs sm:text-sm ${u.tipe==='masuk' ? 'text-emerald-600' : 'text-rose-600'}">${u.tipe==='masuk'?'+':'-'} ${fmtRp(u.nominal)}</p>
+                        <button onclick="delDocItem('keuangan', '${u.id}')" class="text-[11px] text-gray-400 hover:text-red-600 mt-0.5">Hapus</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('dash-saldo').innerText = fmtRp(totalMasuk - totalKeluar);
+            document.getElementById('dash-keluar').innerText = fmtRp(keluarHariIni);
+            document.getElementById('uang-list').innerHTML = uangHtml || '<p class="p-6 text-center text-slate-500 text-sm">Belum ada transaksi tersimpan</p>';
+
+            // Update 3 Ringkasan Keuangan
+            const km = document.getElementById('keuangan-total-masuk');
+            const kk = document.getElementById('keuangan-total-keluar');
+            const ks = document.getElementById('keuangan-saldo-bersih');
+            if(km) km.innerText = fmtRp(totalMasuk);
+            if(kk) kk.innerText = fmtRp(totalKeluar);
+            if(ks) ks.innerText = fmtRp(totalMasuk - totalKeluar);
+
+            // Update Transaksi Terakhir di Beranda (Top 4)
+            const recentUang = dUang.slice(-4).reverse();
+            let dashUangHtml = '';
+            recentUang.forEach(u => {
+                const ts = u.timestamp || u.ts || Date.now();
+                dashUangHtml += `
+                <div class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${u.tipe==='masuk' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} text-sm shrink-0">
+                            <i class="ph-fill ${u.tipe==='masuk' ? 'ph-trend-up' : 'ph-trend-down'}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold text-slate-900 truncate">${u.ket}</p>
+                            <p class="text-[10px] text-slate-500">${new Date(ts).toLocaleDateString('id-ID', {day:'numeric', month:'short'})}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold ${u.tipe==='masuk' ? 'text-emerald-600' : 'text-rose-600'} shrink-0">${u.tipe==='masuk'?'+':'-'} ${fmtRp(u.nominal)}</span>
+                </div>`;
+            });
+            const dashUangEl = document.getElementById('dash-recent-uang');
+            if(dashUangEl) dashUangEl.innerHTML = dashUangHtml || '<p class="text-xs text-slate-500 py-4 text-center">Belum ada transaksi</p>';
+
+            let jadHtml = '', dashJadwalHtml = '';
+            let tugasDone = 0, count = 0;
+            
+            dJadwal.forEach(j => {
+                const jDate = j.tanggal || todayDateStr;
+                const isToday = jDate === todayDateStr;
+                if(isToday && j.status === 'done') tugasDone++;
+                const isDone = j.status === 'done';
+
+                const card = `
+                <div class="bg-white p-3 rounded-xl border ${isDone ? 'border-green-200 bg-green-50/40' : 'border-gray-200'} shadow-sm flex items-center justify-between group gap-2.5">
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                        <button onclick="toggleJadwal('${j.id}', '${j.status}')" class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-green-500'}">
+                            ${isDone ? '<i class="ph-fill ph-check text-[10px]"></i>' : ''}
+                        </button>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-900'} truncate">${j.ket}</p>
+                            <p class="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5 truncate"><i class="ph ph-calendar"></i> ${jDate} <i class="ph ph-clock"></i> ${j.jam}</p>
+                        </div>
+                    </div>
+                    <button onclick="delDocItem('jadwal', '${j.id}')" class="text-red-400 hover:text-red-600 p-1 shrink-0"><i class="ph-fill ph-trash text-sm"></i></button>
+                </div>`;
+                
+                jadHtml += card;
+                if(isToday && !isDone && count < 2) { dashJadwalHtml += card; count++; }
+            });
+
+            const totalTodayJadwal = dJadwal.filter(j => (j.tanggal || todayDateStr) === todayDateStr).length;
+            document.getElementById('dash-tugas').innerText = `${tugasDone}/${totalTodayJadwal}`;
+            document.getElementById('jadwal-list-full').innerHTML = jadHtml || '<p class="text-gray-600">Tidak ada jadwal</p>';
+            document.getElementById('dash-jadwal-list').innerHTML = dashJadwalHtml || '<p class="text-gray-600 text-xs py-2">Semua jadwal terdekat selesai! 🎉</p>';
+
+            renderCalendar();
+            renderMiniCalendar();
+            renderSelectedDateActivities(selectedDateStr);
+
+            // Sinkronisasi tanggal lokal hari ini secara realtime
+            todayDateStr = getLocalDateStr(new Date());
+
+            // HABIT TRACKER REALTIME AUTO-RESET:
+            // Sebuah habit dianggap SELESAI HARI INI hanya jika ditandai selesai PADA TANGGAL HARI INI (todayDateStr).
+            // Jika habit selesai kemarin (tanggal berbeda), otomatis ter-reset kembali menjadi PENDING untuk hari ini!
+            const isHabitDoneToday = (h) => (h.done === true && h.lastCompletedDate === todayDateStr);
+            const pendingHabits = dHabit.filter(h => !isHabitDoneToday(h)).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
+            const doneHabits = dHabit.filter(h => isHabitDoneToday(h)).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
+            const totalHabits = dHabit.length;
+            const habitDoneCount = doneHabits.length;
+            const habitPct = totalHabits > 0 ? Math.round((habitDoneCount / totalHabits) * 100) : 0;
+
+            // Update Progress Tab Habit
+            const habitProgressBar = document.getElementById('habit-progress-bar');
+            if(habitProgressBar) habitProgressBar.style.width = habitPct + '%';
+            const habitProgressText = document.getElementById('habit-progress-text');
+            if(habitProgressText) habitProgressText.innerText = habitPct + '%';
+            const habitProgressDesc = document.getElementById('habit-progress-desc');
+            if(habitProgressDesc) habitProgressDesc.innerText = `${habitDoneCount} dari ${totalHabits} habit terlaksana`;
+            const badgePending = document.getElementById('badge-count-pending');
+            if(badgePending) badgePending.innerText = pendingHabits.length;
+            const badgeDone = document.getElementById('badge-count-done');
+            if(badgeDone) badgeDone.innerText = doneHabits.length;
+
+            // Update Dashboard Circular Ring & Notification Status
+            const dashHabitCircle = document.getElementById('dash-habit-circle');
+            if(dashHabitCircle) {
+                // Circumference for r=20 is 2 * pi * 20 ≈ 125.7
+                const offset = 125.7 - (125.7 * habitPct / 100);
+                dashHabitCircle.style.strokeDashoffset = offset;
+            }
+            const dashHabitPct = document.getElementById('dash-habit-pct');
+            if(dashHabitPct) dashHabitPct.innerText = habitPct + '%';
+            const dashHabitBadge = document.getElementById('dash-habit-badge');
+            if(dashHabitBadge) dashHabitBadge.innerText = `${habitDoneCount}/${totalHabits} Selesai`;
+
+            const dashHabitTitle = document.getElementById('dash-habit-status-title');
+            const dashHabitSub = document.getElementById('dash-habit-status-sub');
+            if(dashHabitTitle && dashHabitSub) {
+                if(totalHabits === 0) {
+                    dashHabitTitle.innerText = "Belum Ada Habit";
+                    dashHabitSub.innerText = "Mulai rutinitas positifmu hari ini";
+                } else if(habitPct === 100) {
+                    dashHabitTitle.innerText = "Semua Habit Tuntas! 🎉";
+                    dashHabitSub.innerText = "Hebat! Target hari ini tercapai 100%";
+                } else if(habitPct >= 50) {
+                    dashHabitTitle.innerText = "Setengah Jalan Selesai!";
+                    dashHabitSub.innerText = `Tinggal ${pendingHabits.length} habit lagi belum terlaksana`;
+                } else {
+                    dashHabitTitle.innerText = "Ayo Mulai Rutinitas";
+                    dashHabitSub.innerText = `${pendingHabits.length} habit menunggu diselesaikan`;
+                }
+            }
+
+            // Render Dashboard Habit List: Prioritaskan yang belum terlaksana
+            let dashHabitHtml = '';
+            if(totalHabits === 0) {
+                dashHabitHtml = `<p class="text-slate-400 text-xs py-3 text-center">Belum ada habit harian.</p>`;
+            } else if(pendingHabits.length === 0) {
+                dashHabitHtml = `
+                <div class="p-3 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-center space-y-1">
+                    <p class="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                        <i class="ph-fill ph-check-circle text-emerald-600 text-sm"></i> Semua Habit Selesai!
+                    </p>
+                    <p class="text-[11px] text-emerald-600">Hebat! Kamu telah menyelesaikan seluruh target hari ini.</p>
+                </div>
+                <div class="pt-1 flex justify-between items-center text-[11px] text-slate-500 px-1">
+                    <span>${doneHabits.length} kebiasaan tuntas</span>
+                    <button onclick="switchTab('habit')" class="text-primary font-semibold hover:underline">Kelola Habit</button>
+                </div>`;
+            } else {
+                // Tampilkan habit yang belum terlaksana (maksimal 4 di dashboard agar compact & rapi)
+                const showPending = pendingHabits.slice(0, 4);
+                dashHabitHtml = showPending.map(h => `
+                    <div class="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between group hover:border-blue-300 transition-all">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <button onclick="toggleHabit('${h.id}', false)" title="Tandai selesai" class="w-5 h-5 rounded-lg border-2 border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center shrink-0 transition-colors">
+                            </button>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-slate-900 truncate">${h.nama}</p>
+                                <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                                    ${h.jam ? `<span class="inline-flex items-center gap-0.5 text-primary font-semibold bg-blue-50 px-1.5 py-0.2 rounded"><i class="ph ph-clock"></i> ${h.jam}</span>` : ''}
+                                    <span class="truncate">${h.ket}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                if(pendingHabits.length > 4) {
+                    dashHabitHtml += `<div class="text-center pt-1"><button onclick="switchTab('habit')" class="text-[11px] text-primary font-medium hover:underline">+ ${pendingHabits.length - 4} habit lainnya</button></div>`;
+                }
+
+                // Jika ada habit yang sudah selesai, pindahkan ke info ringkasan bawah
+                if(doneHabits.length > 0) {
+                    dashHabitHtml += `
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span class="flex items-center gap-1 text-emerald-600 font-medium">
+                            <i class="ph-fill ph-check-circle"></i> ${doneHabits.length} habit sudah selesai
+                        </span>
+                        <button onclick="switchTab('habit')" class="text-primary hover:underline font-medium">Lihat Semua</button>
+                    </div>`;
+                }
+            }
+            const dashHabitListEl = document.getElementById('dash-habit-list');
+            if(dashHabitListEl) dashHabitListEl.innerHTML = dashHabitHtml;
+
+            // Render Tab Habit (Dua Bagian Terpisah: Belum Selesai & Sudah Selesai)
+            let pendingListHtml = pendingHabits.map(h => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-start justify-between group hover:border-blue-300 transition-all">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <button onclick="toggleHabit('${h.id}', false)" title="Tandai selesai" class="w-6 h-6 mt-0.5 rounded-lg border-2 border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center shrink-0 transition-colors">
+                        </button>
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-bold text-slate-900">${h.nama}</p>
+                                ${h.jam ? `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md"><i class="ph ph-clock"></i> ${h.jam}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-500">${h.ket}</p>
+                        </div>
+                    </div>
+                    <button onclick="delDocItem('habit', '${h.id}')" title="Hapus" class="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><i class="ph-fill ph-trash text-base"></i></button>
+                </div>
+            `).join('');
+
+            let doneListHtml = doneHabits.map(h => `
+                <div class="bg-emerald-50/40 p-4 rounded-xl border border-emerald-200/70 shadow-xs flex items-start justify-between group">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <button onclick="toggleHabit('${h.id}', true)" title="Batal selesai (kembalikan)" class="w-6 h-6 mt-0.5 rounded-lg bg-emerald-500 border-2 border-emerald-500 text-white flex items-center justify-center shrink-0 transition-colors hover:bg-emerald-600">
+                            <i class="ph-bold ph-check text-xs"></i>
+                        </button>
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-semibold text-slate-400 line-through">${h.nama}</p>
+                                ${h.jam ? `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md"><i class="ph ph-clock"></i> ${h.jam}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-400">${h.ket}</p>
+                        </div>
+                    </div>
+                    <button onclick="delDocItem('habit', '${h.id}')" title="Hapus" class="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><i class="ph-fill ph-trash text-base"></i></button>
+                </div>
+            `).join('');
+
+            const habitPendingEl = document.getElementById('habit-list-pending');
+            if(habitPendingEl) habitPendingEl.innerHTML = pendingListHtml || '<div class="col-span-full py-6 text-center bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400"><i class="ph ph-check-circle text-emerald-500 text-lg mb-1 block"></i>Tidak ada habit yang tertunda. Semua sudah selesai!</div>';
+
+            const habitDoneEl = document.getElementById('habit-list-done');
+            if(habitDoneEl) habitDoneEl.innerHTML = doneListHtml || '<div class="col-span-full py-4 text-center text-xs text-slate-400">Belum ada habit yang diselesaikan hari ini.</div>';
+
+            let catHtml = '';
+            dCatatan.forEach(c => {
+                catHtml += `
+                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-md relative group">
+                    ${c.is_pin ? '<div class="absolute top-0 right-4 -translate-y-1/2 bg-orange-500 text-white p-1.5 rounded-full shadow-sm"><i class="ph-fill ph-push-pin text-xs"></i></div>' : ''}
+                    <h4 class="font-bold text-gray-900 mb-1 pr-6">${c.judul}</h4>
+                    <p class="text-sm text-gray-700 mb-3 whitespace-pre-line">${c.isi}</p>
+                    <div class="flex justify-between items-center text-xs text-gray-600">
+                        <span>${new Date(c.timestamp || c.ts || Date.now()).toLocaleDateString('id-ID')}</span>
+                        <button onclick="delDocItem('catatan', '${c.id}')" class="hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">Hapus</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('catatan-list-full').innerHTML = catHtml || '<p class="text-gray-600 col-span-2">Belum ada catatan</p>';
+
+            let hutangHtml = '', totalPiutangApp = 0;
+            dHutang.forEach(h => {
+                totalPiutangApp += Number(h.sisa);
+                const progress = h.total > 0 ? ((h.total - h.sisa) / h.total) * 100 : 0;
+                let cicilanHtml = '';
+                if(h.cicilan && h.cicilan.length > 0) {
+                    h.cicilan.forEach((c, idx) => {
+                        cicilanHtml += `
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                            <span class="text-xs text-gray-700">${idx+1}. ${formatDateFull(c.ts)}</span>
+                            <span class="text-xs font-semibold text-green-600">+${fmtRp(c.nominal)}</span>
+                        </div>`;
+                    });
+                } else {
+                    cicilanHtml = `<p class="text-xs text-gray-600 py-2">Belum ada riwayat cicilan.</p>`;
+                }
+
+                hutangHtml += `
+                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-md flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-bold text-gray-900 text-lg">${h.nama}</h4>
+                            <p class="text-xs text-gray-600">${h.ket}</p>
+                        </div>
+                        <button onclick="delDocItem('hutang', '${h.id}')" class="text-gray-400 hover:text-red-600"><i class="ph-fill ph-trash"></i></button>
+                    </div>
+                    <div class="mt-4 mb-2 flex justify-between text-sm">
+                        <span class="text-gray-600">Sisa Hutang:</span>
+                        <span class="font-bold text-red-500">${fmtRp(h.sisa)}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                        <div class="bg-primary h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="mt-2 bg-gray-50 rounded-xl p-3 border border-gray-200 flex-1">
+                        <h5 class="text-xs font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1">Bukti Riwayat Pembayaran:</h5>
+                        <div class="max-h-24 overflow-y-auto">${cicilanHtml}</div>
+                    </div>
+                    ${h.sisa > 0 ? `
+                    <button onclick="bukaModalCicilan('${h.id}', '${h.nama}', ${h.sisa})" class="w-full mt-4 bg-green-50 text-green-700 font-semibold py-2.5 rounded-xl border border-green-200 hover:bg-green-100 transition-colors flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-plus"></i> Terima Cicilan
+                    </button>
+                    ` : `<div class="w-full mt-4 bg-green-500 text-white font-bold py-2.5 rounded-xl text-center text-xs">LUNAS</div>`}
+                </div>`;
+            });
+            document.getElementById('dash-piutang').innerText = fmtRp(totalPiutangApp);
+            document.getElementById('hutang-list').innerHTML = hutangHtml || '<p class="text-gray-600 col-span-2 text-center py-8">Belum ada piutang.</p>';
+        }
+
+        window.changeMonth = function(dir) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir); renderCalendar(); }
+        window.changeMiniMonth = function(dir) { currentMiniCalendarDate.setMonth(currentMiniCalendarDate.getMonth() + dir); renderMiniCalendar(); }
+
+        async function renderCalendar() {
+            const gridEl = document.getElementById('calendar-grid');
+            const monthYearEl = document.getElementById('calendar-month-year');
+            if(!gridEl || !monthYearEl) return;
+
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            const monthsName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            monthYearEl.innerText = `${monthsName[month]} ${year}`;
+
+            const holidays = await fetchHolidays(year);
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+
+            let daysHtml = '';
+            for(let i = 0; i < firstDayIndex; i++) daysHtml += `<div class="h-12 md:h-16 bg-gray-100 rounded-xl"></div>`;
+
+            for(let d = 1; d <= lastDay; d++) {
+                const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const hasTask = globalJadwalData.some(j => (j.tanggal || todayDateStr) === fullDateStr);
+                const isHoliday = holidays[fullDateStr] || new Date(year, month, d).getDay() === 0;
+                const isSelected = fullDateStr === selectedDateStr;
+                const isToday = fullDateStr === todayDateStr;
+
+                let borderClass = isSelected ? "border-primary bg-blue-50 ring-2 ring-primary/20" : "border-gray-200 hover:border-primary";
+                let textRedClass = (isHoliday || holidays[fullDateStr]) ? "text-red-500 font-bold" : "text-gray-900";
+
+                daysHtml += `
+                <div onclick="selectCalendarDate('${fullDateStr}')" class="bg-white ${borderClass} border h-12 md:h-16 rounded-xl p-1.5 flex flex-col justify-between cursor-pointer transition-all relative shadow-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold ${isToday ? 'bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center' : textRedClass}">${d}</span>
+                        ${holidays[fullDateStr] ? `<span class="w-1.5 h-1.5 bg-red-500 rounded-full" title="${holidays[fullDateStr]}"></span>` : ''}
+                    </div>
+                    ${hasTask ? `<div class="flex items-center justify-center"><span class="w-1.5 h-1.5 bg-primary rounded-full"></span></div>` : ''}
+                </div>`;
+            }
+            gridEl.innerHTML = daysHtml;
+        }
+
+        async function renderMiniCalendar() {
+            const gridEl = document.getElementById('mini-calendar-grid');
+            const titleEl = document.getElementById('mini-cal-month-title');
+            const holidayInfoEl = document.getElementById('mini-holiday-info');
+            if(!gridEl || !titleEl) return;
+
+            const year = currentMiniCalendarDate.getFullYear();
+            const month = currentMiniCalendarDate.getMonth();
+            const monthsName = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+            titleEl.innerText = `${monthsName[month]} ${year}`;
+
+            const holidays = await fetchHolidays(year);
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+
+            let daysHtml = '';
+            for(let i = 0; i < firstDayIndex; i++) daysHtml += `<div></div>`;
+
+            if(holidays[todayDateStr] && holidayInfoEl) holidayInfoEl.innerText = `🎉 Libur: ${holidays[todayDateStr]}`;
+            else if(holidayInfoEl) holidayInfoEl.innerText = `📅 Hari aktif normal`;
+
+            for(let d = 1; d <= lastDay; d++) {
+                const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isHoliday = holidays[fullDateStr] || new Date(year, month, d).getDay() === 0;
+                const isToday = fullDateStr === todayDateStr;
+                const hasTask = globalJadwalData.some(j => (j.tanggal || todayDateStr) === fullDateStr);
+
+                let cls = "text-gray-900 hover:bg-gray-100 rounded-lg py-1";
+                if(isToday) cls = "bg-primary text-white font-bold rounded-lg py-1 shadow-sm";
+                else if(isHoliday) cls = "text-red-500 font-bold hover:bg-red-50 rounded-lg py-1";
+
+                daysHtml += `<div onclick="switchTab('kalender'); selectCalendarDate('${fullDateStr}');" class="cursor-pointer text-xs ${cls} relative flex flex-col items-center justify-center">
+                    <span>${d}</span>
+                    ${hasTask && !isToday ? `<span class="w-1 h-1 bg-primary rounded-full absolute bottom-0.5"></span>` : ''}
+                </div>`;
+            }
+            gridEl.innerHTML = daysHtml;
+        }
+
+        window.selectCalendarDate = function(dateStr) {
+            selectedDateStr = dateStr;
+            renderCalendar();
+            renderSelectedDateActivities(dateStr);
+        }
+
+        async function renderSelectedDateActivities(dateStr) {
+            const container = document.getElementById('selected-date-activities');
+            const label = document.getElementById('selected-date-label');
+            const banner = document.getElementById('selected-date-holiday-banner');
+            if(!container || !label) return;
+
+            label.innerText = dateStr;
+            const holidays = await fetchHolidays(dateStr.split('-')[0]);
+            const holidayName = holidays[dateStr];
+
+            if(banner) banner.innerHTML = holidayName ? `<div class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-center gap-2"><i class="ph-fill ph-calendar-star text-base"></i> Libur: ${holidayName}</div>` : '';
+
+            const filtered = globalJadwalData.filter(j => (j.tanggal || todayDateStr) === dateStr);
+            filtered.sort((a, b) => (a.jam || "00:00").localeCompare(b.jam || "00:00"));
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-600 py-2">Tidak ada aktivitas pada tanggal ini.</p>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(j => {
+                const isDone = j.status === 'done';
+                html += `
+                <div class="flex items-center justify-between p-3 rounded-xl border ${isDone ? 'bg-green-50/50 border-green-200' : 'bg-gray-50 border-gray-200'}">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleJadwal('${j.id}', '${j.status}')" class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}">
+                            ${isDone ? '<i class="ph-fill ph-check text-[10px]"></i>' : ''}
+                        </button>
+                        <div>
+                            <p class="text-xs font-bold ${isDone ? 'line-through text-gray-400' : 'text-gray-900'}">${j.ket}</p>
+                            <p class="text-[10px] text-gray-600">Pukul ${j.jam}</p>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // --- Cloud Actions ---
+        window.savePengaturan = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const appName = document.getElementById('setting-app-name').value.trim();
+            const userName = document.getElementById('setting-user-name').value.trim();
+            let geminiKey = document.getElementById('setting-gemini-key').value.trim();
+            geminiKey = geminiKey.replace(/^["']+|["']+$/g, '').trim();
+            document.getElementById('setting-gemini-key').value = geminiKey;
+            if(geminiKey) localStorage.setItem('myday_gemini_key', geminiKey);
+            try {
+                await setDoc(doc(db, 'users', currentUser.uid, 'settings', 'config'), { appName, userName, geminiKey });
+                showToast("Pengaturan berhasil disimpan ke Cloud!", "success");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan pengaturan"); }
+        }
+
+        window.saveUang = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const tipe = document.querySelector('input[name="uang-tipe"]:checked').value;
+            const nominal = Number(document.getElementById('uang-nominal').value);
+            const ket = document.getElementById('uang-ket').value;
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'keuangan'), { tipe, nominal, ket, ts: Date.now() });
+                closeModal('modal-uang');
+                showToast("Transaksi tersimpan!");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan transaksi"); }
+        }
+
+        window.saveJadwal = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const tanggal = document.getElementById('jadwal-tanggal').value;
+            const jam = document.getElementById('jadwal-jam').value;
+            const ket = document.getElementById('jadwal-ket').value;
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'jadwal'), { tanggal, jam, ket, status: 'pending', ts: Date.now() });
+                closeModal('modal-jadwal');
+                showToast("Jadwal ditambahkan!");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan jadwal"); }
+        }
+
+        window.saveHabit = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const nama = document.getElementById('habit-nama').value.trim();
+            const jam = document.getElementById('habit-jam') ? document.getElementById('habit-jam').value : '';
+            const ket = document.getElementById('habit-ket').value.trim();
+            if(!nama) { showToast("Nama kebiasaan harus diisi", "error"); return; }
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'habit'), { nama, jam, ket, done: false, lastCompletedDate: '', ts: Date.now() });
+                closeModal('modal-habit');
+                document.getElementById('habit-nama').value = '';
+                if(document.getElementById('habit-jam')) document.getElementById('habit-jam').value = '';
+                document.getElementById('habit-ket').value = '';
+                showToast("Habit berhasil ditambahkan!");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan habit"); }
+        }
+
+        window.saveCatatan = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const judul = document.getElementById('cat-judul').value;
+            const isi = document.getElementById('cat-isi').value;
+            const is_pin = document.getElementById('cat-pin').checked;
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'catatan'), { judul, isi, is_pin, ts: Date.now() });
+                closeModal('modal-catatan');
+                showToast("Catatan tersimpan!");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan catatan"); }
+        }
+
+        window.saveHutangBaru = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const nama = document.getElementById('hutang-nama').value;
+            const total = Number(document.getElementById('hutang-total').value);
+            const ket = document.getElementById('hutang-ket').value;
+            try {
+                await addDoc(collection(db, 'users', currentUser.uid, 'hutang'), { nama, total, sisa: total, ket, cicilan: [], ts: Date.now() });
+                closeModal('modal-hutang');
+                showToast("Piutang dicatat!");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menyimpan piutang"); }
+        }
+
+        window.bukaModalCicilan = function(id, nama, sisa) {
+            document.getElementById('cicilan-id-hutang').value = id;
+            document.getElementById('cicilan-nama-hutang').value = nama;
+            document.getElementById('cicilan-nominal').max = sisa;
+            document.getElementById('cicilan-nominal').value = '';
+            openModal('modal-bayar-hutang');
+        }
+
+        window.saveCicilan = async function() {
+            if(!currentUser) { showToast("Silakan login terlebih dahulu", "error"); return; }
+            const id = document.getElementById('cicilan-id-hutang').value;
+            const nama = document.getElementById('cicilan-nama-hutang').value;
+            const nominal = Number(document.getElementById('cicilan-nominal').value);
+            const ts = Date.now();
+
+            try {
+                const hutangRef = doc(db, 'users', currentUser.uid, 'hutang', id);
+                const snap = await getDoc(hutangRef);
+                if(snap.exists()) {
+                    let data = snap.data();
+                    let sisaBaru = Math.max(0, data.sisa - nominal);
+                    let cicilanList = data.cicilan || [];
+                    cicilanList.push({ nominal, ts });
+                    await updateDoc(hutangRef, { sisa: sisaBaru, cicilan: cicilanList });
+
+                    // Otomatis masukkan ke kas keuangan
+                    await addDoc(collection(db, 'users', currentUser.uid, 'keuangan'), { tipe: 'masuk', nominal, ket: `Cicilan piutang dari ${nama}`, ts });
+
+                    closeModal('modal-bayar-hutang');
+                    showToast("Cicilan diterima & otomatis masuk kas!");
+                    loadCloudData();
+                }
+            } catch(e) { handleFirestoreError(e, "mencatat cicilan"); }
+        }
+
+        window.toggleJadwal = async function(id, currStatus) {
+            if(!currentUser) return;
+            try {
+                const newStatus = currStatus === 'done' ? 'pending' : 'done';
+                await updateDoc(doc(db, 'users', currentUser.uid, 'jadwal', id), { status: newStatus });
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "memperbarui jadwal"); }
+        }
+
+        window.toggleHabit = async function(id, currStatus) {
+            if(!currentUser) return;
+            try {
+                todayDateStr = getLocalDateStr(new Date());
+                const willBeDone = !currStatus;
+                await updateDoc(doc(db, 'users', currentUser.uid, 'habit', id), { 
+                    done: willBeDone,
+                    lastCompletedDate: willBeDone ? todayDateStr : ''
+                });
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "memperbarui habit"); }
+        }
+
+        window.delDocItem = async function(colName, id) {
+            if(!currentUser || !confirm("Hapus item ini?")) return;
+            try {
+                await deleteDoc(doc(db, 'users', currentUser.uid, colName, id));
+                showToast("Berhasil dihapus");
+                loadCloudData();
+            } catch(e) { handleFirestoreError(e, "menghapus"); }
+        }
+    </script>
+    </body>
+</html>
