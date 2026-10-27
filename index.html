@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SAKUKU - Dompet & Pusat Kendali</title>
+    <title>SINTAS - Dompet & Pusat Kendali</title>
     
     <!-- PWA Manifest & Theme -->
     <meta name="theme-color" content="#0D81BC">
@@ -126,7 +126,7 @@
                     <img src="logo-icon.png" alt="Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-white tracking-tight" id="app-name-display">SAKUKU</h1>
+                    <h1 class="text-lg font-bold text-white tracking-tight" id="app-name-display">SINTAS</h1>
                     <p class="text-[10px] text-slate-400 font-medium">Dompet & Pusat Kendali</p>
                 </div>
             </div>
@@ -276,9 +276,10 @@
             <!-- TAB: DASHBOARD -->
             <div id="tab-dashboard" class="tab-content block space-y-6">
                 
-                <!-- Hero Greeting & Quick Action Banner (Dual Tone Sakuku Blue & Orange + Watermark Logo) -->
-                <div class="bg-gradient-to-r from-[#096392] via-[#0D81BC] to-[#DA5E13] rounded-2xl p-4 sm:p-7 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
-                    <div class="absolute -right-8 -bottom-8 opacity-15 pointer-events-none select-none">
+                <!-- Hero Greeting & Quick Action Banner (Kombinasi Biru & Orange Sakuku + Watermark Logo) -->
+                <div class="bg-gradient-to-r from-[#096392] via-[#0D81BC] to-[#F57726] rounded-2xl p-4 sm:p-7 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
+                    <!-- Watermark Logo Samar SAKUKU di kanan belakang -->
+                    <div class="absolute -right-8 -bottom-8 opacity-20 pointer-events-none select-none">
                         <img src="logo-icon.png" alt="Logo Watermark" class="w-48 sm:w-64 h-48 sm:h-64 object-contain brightness-0 invert">
                     </div>
                     <div class="relative z-10">
@@ -289,10 +290,10 @@
                         <p class="text-sky-100 text-xs sm:text-sm mt-1">Berikut adalah ringkasan produktivitas dan keuangan hari ini.</p>
                     </div>
                     <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 relative z-10 w-full sm:w-auto">
-                        <button onclick="openModal('modal-uang')" class="bg-white hover:bg-orange-50 text-slate-900 hover:text-accent font-bold px-3 py-2.5 rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all">
-                            <i class="ph-bold ph-scan text-sm sm:text-base text-accent"></i> Scan Struk AI
+                        <button onclick="openModal('modal-uang')" class="bg-white hover:bg-orange-50 text-slate-900 hover:text-[#F57726] font-bold px-3.5 py-2.5 rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95">
+                            <i class="ph-bold ph-scan text-sm sm:text-base text-[#F57726]"></i> Scan Struk AI
                         </button>
-                        <button onclick="openModal('modal-jadwal')" class="bg-black/25 hover:bg-black/35 text-white font-semibold px-3 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all backdrop-blur-sm border border-white/20">
+                        <button onclick="openModal('modal-jadwal')" class="bg-white/20 hover:bg-white/30 text-white font-semibold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all backdrop-blur-md border border-white/30 shadow-xs active:scale-95">
                             <i class="ph-bold ph-plus text-sm sm:text-base"></i> Jadwal Baru
                         </button>
                     </div>
@@ -920,13 +921,15 @@
                 <p class="text-[11px] text-gray-700 mb-3">Pindai struk belanja atau QR pembayaran menggunakan kamera atau file. Foto diproses aman dan tidak disimpan.</p>
                 
                 <div class="grid grid-cols-2 gap-2 relative z-10">
-                    <button type="button" onclick="openCameraModal()" class="bg-blue-600 text-white py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md">
+                    <button type="button" onclick="openCameraModal()" class="bg-blue-600 text-white py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md active:scale-95">
                         <i class="ph-bold ph-camera text-base"></i> Buka Kamera
                     </button>
-                    <label class="cursor-pointer bg-white text-gray-800 border border-gray-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-all shadow-sm">
+                    <label class="cursor-pointer bg-white text-gray-800 border border-gray-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-all shadow-sm active:scale-95">
                         <i class="ph-bold ph-upload text-base text-gray-600"></i> Pilih File
                         <input type="file" accept="image/*" class="hidden" onchange="handleStrukUpload(event)">
                     </label>
+                    <!-- Input Tersembunyi Khusus Kamera Asli Mobile dengan Autofokus & Resolusi Tinggi -->
+                    <input type="file" accept="image/*" capture="environment" id="native-camera-file" class="hidden" onchange="handleStrukUpload(event)">
                 </div>
 
                 <div id="ocr-loading" class="hidden mt-3 text-xs text-blue-700 font-medium flex items-center justify-center gap-2">
@@ -1153,10 +1156,44 @@
             }, 3000);
         }
 
-        const todayDateStr = new Date().toISOString().split('T')[0];
+        // Helper Tanggal Lokal Real-time (Anti-Bug UTC / Offset Timezone Indonesia)
+        function getLocalDateStr(d = new Date()) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let todayDateStr = getLocalDateStr(new Date());
         let currentCalendarDate = new Date();
         let currentMiniCalendarDate = new Date();
         let selectedDateStr = todayDateStr;
+
+        // Auto-refresh real-time jika hari berganti (misal tengah malam atau saat browser aktif kembali)
+        function checkRealtimeDateChange() {
+            const freshToday = getLocalDateStr(new Date());
+            if(freshToday !== todayDateStr) {
+                console.log("Hari berganti real-time dari", todayDateStr, "ke", freshToday);
+                todayDateStr = freshToday;
+                selectedDateStr = freshToday;
+                currentCalendarDate = new Date();
+                currentMiniCalendarDate = new Date();
+                const tglInput = document.getElementById('jadwal-tanggal');
+                if(tglInput) tglInput.value = todayDateStr;
+                const dateEl = document.getElementById('desktop-date');
+                if(dateEl) {
+                    dateEl.innerHTML = '<i class="ph ph-calendar text-primary"></i> ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                }
+                if(typeof currentUser !== 'undefined' && currentUser && typeof loadCloudData === 'function') {
+                    loadCloudData();
+                } else if(typeof renderCalendar === 'function') {
+                    renderCalendar();
+                    renderMiniCalendar();
+                }
+            }
+        }
+        setInterval(checkRealtimeDateChange, 30000);
+        window.addEventListener('focus', checkRealtimeDateChange);
         let globalJadwalData = [];
         let holidayCache = {};
 
@@ -1280,7 +1317,10 @@
         }
 
         window.onload = () => {
-            document.getElementById('jadwal-tanggal').value = todayDateStr;
+            todayDateStr = getLocalDateStr(new Date());
+            selectedDateStr = todayDateStr;
+            const tglEl = document.getElementById('jadwal-tanggal');
+            if(tglEl) tglEl.value = todayDateStr;
             const dateEl = document.getElementById('desktop-date');
             if(dateEl) {
                 dateEl.innerHTML = '<i class="ph ph-calendar text-primary"></i> ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
@@ -1321,81 +1361,106 @@
             }
         }
 
-        // --- Gemini AI Dynamic Model Resolver & Multi-Model Fallback ---
-        async function getAvailableGeminiModel(apiKey) {
-            const cachedModel = localStorage.getItem('myday_gemini_model');
-            const cachedVer = localStorage.getItem('myday_gemini_apiversion') || 'v1beta';
+        // --- Gemini AI Dynamic Model Discovery & Multi-Model Multi-Version Fallback ---
+        async function fetchAvailableModels(apiKey) {
+            const versions = ['v1beta', 'v1'];
+            let detected = [];
+            let lastErr = null;
 
-            // Panggil ListModels (ModelService.ListModels) untuk deteksi model aktif akun pengguna
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                if(res.ok) {
-                    const data = await res.json();
-                    const models = (data.models || []).filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
-                    if(models.length > 0) {
-                        const priorities = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'flash', 'gemini-pro', 'gemini'];
-                        let chosen = null;
-                        for(const p of priorities) {
-                            const found = models.find(m => m.name.toLowerCase().includes(p));
-                            if(found) { chosen = found.name.replace(/^models\//, ''); break; }
+            for(const v of versions) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/${v}/models?key=${apiKey}`);
+                    if(res.ok) {
+                        const data = await res.json();
+                        const list = (data.models || [])
+                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                            .map(m => ({
+                                version: v,
+                                model: m.name.replace(/^models\//, ''),
+                                displayName: m.displayName || m.name
+                            }));
+                        if(list.length > 0) {
+                            detected.push(...list);
                         }
-                        if(!chosen) chosen = models[0].name.replace(/^models\//, '');
-                        
-                        localStorage.setItem('myday_gemini_model', chosen);
-                        localStorage.setItem('myday_gemini_apiversion', 'v1beta');
-                        return { version: 'v1beta', model: chosen };
+                    } else {
+                        const err = await res.json().catch(() => null);
+                        lastErr = err;
                     }
+                } catch(e) {
+                    lastErr = e;
                 }
-            } catch(e) {
-                console.warn("ListModels v1beta check error:", e);
             }
-
-            // Coba ListModels di v1 jika v1beta tidak mengembalikan daftar
-            try {
-                const resV1 = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-                if(resV1.ok) {
-                    const dataV1 = await resV1.json();
-                    const modelsV1 = (dataV1.models || []).filter(m => m.supportedGenerationMethods?.includes('generateContent'));
-                    if(modelsV1.length > 0) {
-                        const chosen = modelsV1[0].name.replace(/^models\//, '');
-                        localStorage.setItem('myday_gemini_model', chosen);
-                        localStorage.setItem('myday_gemini_apiversion', 'v1');
-                        return { version: 'v1', model: chosen };
-                    }
-                }
-            } catch(e) {}
-
-            return {
-                version: cachedVer || 'v1beta',
-                model: cachedModel || 'gemini-2.0-flash'
-            };
+            return { detected, lastErr };
         }
 
-        async function callGeminiGenerateContent(apiKey, payload) {
-            const resolved = await getAvailableGeminiModel(apiKey);
-            const candidates = [
-                { version: resolved.version, model: resolved.model },
-                { version: 'v1beta', model: 'gemini-2.0-flash' },
-                { version: 'v1beta', model: 'gemini-2.5-flash' },
-                { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
+        async function callGeminiAPI(apiKey, payload) {
+            // 1. Coba config aktif yang sudah pernah tersimpan & terbukti berhasil
+            let savedConfig = null;
+            try {
+                const raw = localStorage.getItem('myday_gemini_active_config');
+                if(raw) savedConfig = JSON.parse(raw);
+            } catch(e) {}
+
+            let candidateQueue = [];
+
+            if(savedConfig && savedConfig.version && savedConfig.model) {
+                candidateQueue.push(savedConfig);
+            }
+
+            // 2. Ambil daftar model otomatis langsung dari Google untuk API key ini (ListModels)
+            const { detected, lastErr: listErr } = await fetchAvailableModels(apiKey);
+            
+            if(detected.length > 0) {
+                const prefOrder = [
+                    'gemini-2.0-flash',
+                    'gemini-1.5-flash',
+                    'gemini-1.5-flash-002',
+                    'gemini-1.5-flash-001',
+                    'gemini-1.5-flash-8b',
+                    'gemini-2.0-flash-exp',
+                    'gemini-2.5-flash',
+                    'gemini-1.5-pro',
+                    'gemini-pro'
+                ];
+                for(const p of prefOrder) {
+                    const found = detected.filter(d => d.model.toLowerCase() === p || d.model.toLowerCase().startsWith(p));
+                    candidateQueue.push(...found);
+                }
+                for(const d of detected) {
+                    if(!candidateQueue.some(c => c.model === d.model && c.version === d.version)) {
+                        candidateQueue.push(d);
+                    }
+                }
+            }
+
+            // 3. Fallback komprehensif jika ListModels dibatasi atau tidak mengembalikan data
+            const fallbackList = [
+                { version: 'v1beta', model: 'gemini-1.5-flash' },
                 { version: 'v1',     model: 'gemini-1.5-flash' },
-                { version: 'v1beta', model: 'gemini-2.0-flash-lite' },
-                { version: 'v1beta', model: 'gemini-1.5-flash' }
+                { version: 'v1beta', model: 'gemini-2.0-flash' },
+                { version: 'v1',     model: 'gemini-2.0-flash' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-002' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-001' },
+                { version: 'v1beta', model: 'gemini-2.0-flash-exp' },
+                { version: 'v1beta', model: 'gemini-1.5-flash-8b' },
+                { version: 'v1beta', model: 'gemini-1.5-pro' },
+                { version: 'v1',     model: 'gemini-1.5-pro' },
+                { version: 'v1beta', model: 'gemini-pro' },
+                { version: 'v1',     model: 'gemini-pro' }
             ];
 
-            const seen = new Set();
-            const unique = [];
-            for(const c of candidates) {
-                const key = `${c.version}/${c.model}`;
-                if(!seen.has(key)) { seen.add(key); unique.push(c); }
+            for(const fb of fallbackList) {
+                if(!candidateQueue.some(c => c.model === fb.model && c.version === fb.version)) {
+                    candidateQueue.push(fb);
+                }
             }
 
             let lastRes = null;
-            let lastErr = null;
+            let lastError = listErr || null;
 
-            for(const c of unique) {
+            for(const item of candidateQueue) {
                 try {
-                    const url = `https://generativelanguage.googleapis.com/${c.version}/models/${c.model}:generateContent?key=${apiKey}`;
+                    const url = `https://generativelanguage.googleapis.com/${item.version}/models/${item.model}:generateContent?key=${apiKey}`;
                     const res = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1403,23 +1468,25 @@
                     });
 
                     if(res.ok) {
-                        localStorage.setItem('myday_gemini_model', c.model);
-                        localStorage.setItem('myday_gemini_apiversion', c.version);
-                        return { ok: true, response: res, model: c.model, version: c.version };
+                        const data = await res.json();
+                        localStorage.setItem('myday_gemini_active_config', JSON.stringify({ version: item.version, model: item.model }));
+                        return { ok: true, data, model: item.model, version: item.version };
                     } else {
                         lastRes = res;
                         const err = await res.json().catch(() => null);
-                        lastErr = err;
+                        lastError = err;
                         const reason = err?.error?.details?.[0]?.reason || err?.error?.status || "";
-                        if(res.status === 400 && reason === "API_KEY_INVALID") break;
-                        if(res.status === 403) break;
+                        const msg = err?.error?.message || "";
+                        // Jika API key secara fundamental tidak valid atau diblokir permanen, hentikan loop
+                        if(res.status === 400 && (reason === "API_KEY_INVALID" || msg.includes("API key not valid"))) break;
+                        if(res.status === 403 && (reason === "API_KEY_SERVICE_BLOCKED" || msg.includes("blocked"))) break;
                     }
                 } catch(e) {
-                    lastErr = e;
+                    lastError = e;
                 }
             }
 
-            return { ok: false, status: lastRes ? lastRes.status : 500, error: lastErr };
+            return { ok: false, status: lastRes ? lastRes.status : 500, error: lastError, attempted: candidateQueue.length };
         }
 
         window.testApiKey = async function() {
@@ -1427,8 +1494,10 @@
             const statusEl = document.getElementById('gemini-key-status');
             const testBtn = document.getElementById('btn-test-key');
             
-            let apiKey = (inputEl ? inputEl.value : '').trim();
-            apiKey = apiKey.replace(/^["']+|["']+$/g, '').trim();
+            let apiKey = (inputEl ? inputEl.value : '').trim().replace(/^["']+|["']+$/g, '');
+            if(!apiKey) {
+                apiKey = (localStorage.getItem('myday_gemini_key') || '').trim().replace(/^["']+|["']+$/g, '');
+            }
             if(inputEl) inputEl.value = apiKey;
 
             if(!apiKey) { 
@@ -1441,12 +1510,11 @@
                 return; 
             }
 
-            // Validasi format umum
             if(apiKey === "AIzaSyCA44Fi4dPtYHNs7-NTMAVHesqJUHYyMfo") {
                 showToast("Ini adalah API Key Firebase bawaan, bukan Gemini AI! Dapatkan kunci di Google AI Studio.", "error");
                 if(statusEl) {
                     statusEl.className = "mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2 leading-relaxed";
-                    statusEl.innerHTML = '<i class="ph-bold ph-x-circle text-base shrink-0 mt-0.5 text-red-600"></i> <div><b>API Key Firebase Terdeteksi!</b> Kunci ini adalah API key Firebase bawaan untuk database, bukan Gemini AI. Google memblokir akses Generative Language untuk kunci ini.<br><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary mt-1 inline-block">Klik di sini untuk membuat API Key gratis di Google AI Studio</a></div>';
+                    statusEl.innerHTML = '<i class="ph-bold ph-x-circle text-base shrink-0 mt-0.5 text-red-600"></i> <div><b>API Key Firebase Terdeteksi!</b> Kunci ini adalah API key Firebase bawaan database. Buat API Key Gemini gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary">Google AI Studio</a>.</div>';
                     statusEl.classList.remove('hidden');
                 }
                 return;
@@ -1469,19 +1537,19 @@
             }
 
             try {
-                const testResult = await callGeminiGenerateContent(apiKey, { contents: [{ parts: [{ text: "ping" }] }] });
+                const res = await callGeminiAPI(apiKey, { contents: [{ parts: [{ text: "ping" }] }] });
 
-                if(testResult.ok) {
-                    showToast(`API Key Berhasil Terhubung & Aktif! ✅ (Model: ${testResult.model})`, "success");
+                if(res.ok) {
+                    showToast(`API Key Berhasil Terhubung! ✅ (Model: ${res.model})`, "success");
                     localStorage.setItem('myday_gemini_key', apiKey);
                     if(statusEl) {
                         statusEl.className = "mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2";
-                        statusEl.innerHTML = `<i class="ph-bold ph-check-circle text-base text-emerald-600 shrink-0 mt-0.5"></i> <div><b>Koneksi Berhasil!</b> API Key Gemini aktif dan terhubung ke model <b>${testResult.model}</b>. Fitur Scan Struk AI OCR siap digunakan.</div>`;
+                        statusEl.innerHTML = `<i class="ph-bold ph-check-circle text-base text-emerald-600 shrink-0 mt-0.5"></i> <div><b>Koneksi Berhasil!</b> Terhubung ke model <b>${res.model}</b> (${res.version}). Fitur Scan Struk AI OCR siap digunakan.</div>`;
                         statusEl.classList.remove('hidden');
                     }
                 } else {
-                    const lastStatus = testResult.status;
-                    const lastError = testResult.error;
+                    const lastStatus = res.status;
+                    const lastError = res.error;
                     console.error("Gemini API Connection Failed:", lastStatus, lastError);
 
                     const reason = lastError?.error?.details?.[0]?.reason || lastError?.error?.status || "";
@@ -1489,15 +1557,15 @@
                     let explanation = "Gagal terhubung. API Key tidak valid.";
 
                     if(reason === "API_KEY_SERVICE_BLOCKED" || msg.includes("blocked")) {
-                        explanation = "Akses diblokir oleh Google! API Key ini tidak memiliki izin ke Generative Language API (biasanya karena menggunakan API Key Firebase atau dibatasi). Silakan buat API Key baru langsung di Google AI Studio.";
+                        explanation = "Akses diblokir oleh Google! API Key ini tidak memiliki izin ke Generative Language API. Pastikan membuat API Key baru langsung di Google AI Studio.";
                     } else if(reason === "API_KEY_INVALID" || msg.includes("API key not valid")) {
-                        explanation = "API Key tidak valid atau tidak terdaftar di Google. Pastikan menyalin seluruh 39 karakter dari Google AI Studio.";
+                        explanation = "API Key tidak valid atau tidak terdaftar di Google. Pastikan menyalin seluruh karakter dari Google AI Studio.";
                     } else if(lastStatus === 403) {
-                        explanation = "Akses ditolak (HTTP 403). Generative Language API belum diaktifkan atau API Key dibatasi oleh referrer/IP di Google Cloud Console.";
+                        explanation = "Akses ditolak (HTTP 403). Generative Language API belum diaktifkan di Google Cloud Project Anda, atau kunci dibatasi IP/referrer.";
                     } else if(lastStatus === 429) {
                         explanation = "Batas kuota gratis Google terlampaui (HTTP 429). Silakan tunggu 1 menit atau coba dengan akun Google lain.";
                     } else if(lastStatus === 404) {
-                        explanation = `Model AI tidak tersedia (HTTP 404): ${msg}. Silakan periksa akun Google AI Studio Anda.`;
+                        explanation = `Model AI tidak ditemukan di Google untuk akun Anda (${msg || 'HTTP 404'}). Pastikan akun Google AI Studio Anda aktif.`;
                     } else {
                         explanation = `Gagal terhubung (Status ${lastStatus || 'Error'}): ${msg || 'Periksa kembali API Key Anda.'}`;
                     }
@@ -1506,7 +1574,7 @@
 
                     if(statusEl) {
                         statusEl.className = "mt-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2 leading-relaxed";
-                        statusEl.innerHTML = `<i class="ph-bold ph-x-circle text-base text-red-600 shrink-0 mt-0.5"></i> <div><b>Gagal Terhubung (Error ${lastStatus || 404}):</b> ${explanation}<br><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary mt-1 inline-block">Buka Google AI Studio untuk buat API Key baru</a></div>`;
+                        statusEl.innerHTML = `<i class="ph-bold ph-x-circle text-base text-red-600 shrink-0 mt-0.5"></i> <div><b>Gagal Terhubung (Error ${lastStatus || 404}):</b> ${explanation}<br><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold text-primary mt-1 inline-block">Buka Google AI Studio untuk buat API Key baru gratis</a></div>`;
                         statusEl.classList.remove('hidden');
                     }
                 }
@@ -1515,7 +1583,7 @@
                 showToast("Terjadi kesalahan jaringan saat tes koneksi.", "error");
                 if(statusEl) {
                     statusEl.className = "mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2 leading-relaxed";
-                    statusEl.innerHTML = '<i class="ph-bold ph-warning-circle text-base text-amber-600 shrink-0 mt-0.5"></i> <div><b>Kesalahan Jaringan:</b> Tidak dapat menghubungi server Google. Pastikan internet aktif atau matikan ekstensi browser yang memblokir request ke googleapis.com.</div>';
+                    statusEl.innerHTML = '<i class="ph-bold ph-warning-circle text-base text-amber-600 shrink-0 mt-0.5"></i> <div><b>Kesalahan Jaringan:</b> Tidak dapat menghubungi server Google. Pastikan internet aktif.</div>';
                     statusEl.classList.remove('hidden');
                 }
             } finally {
@@ -1527,20 +1595,40 @@
         }
 
         window.openCameraModal = async function() {
+            // Di perangkat mobile (HP Android/iPhone), gunakan kamera bawaan HP agar fokus tajam & teks struk jelas terbaca
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const nativeCamInput = document.getElementById('native-camera-file');
+            
+            if(isMobile && nativeCamInput) {
+                nativeCamInput.click();
+                return;
+            }
+
             const modal = document.getElementById('modal-camera');
             const video = document.getElementById('camera-video');
             modal.classList.replace('hidden', 'flex');
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                // Minta resolusi Full HD / HD agar teks struk tidak buram
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920, min: 1280 },
+                        height: { ideal: 1080, min: 720 }
+                    }, 
+                    audio: false 
+                });
                 video.srcObject = cameraStream;
             } catch(err) {
                 closeCameraModal();
-                showToast("Kamera tidak diizinkan. Menggunakan Pilih File...", "info");
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'file';
-                hiddenInput.accept = 'image/*';
-                hiddenInput.onchange = (e) => handleStrukUpload(e);
-                hiddenInput.click();
+                if(nativeCamInput) {
+                    nativeCamInput.click();
+                } else {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'file';
+                    hiddenInput.accept = 'image/*';
+                    hiddenInput.onchange = (e) => handleStrukUpload(e);
+                    hiddenInput.click();
+                }
             }
         }
 
@@ -1552,98 +1640,230 @@
             }
         }
 
-        window.captureCameraPhoto = function() {
-            const video = document.getElementById('camera-video');
-            const canvas = document.getElementById('camera-canvas');
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            closeCameraModal();
-            processImageForOCR(dataUrl, 'image/jpeg');
+        function compressImageForOCR(fileOrDataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Skala cerdas untuk struk belanja (seringkali struk berbentuk vertikal panjang):
+                    // Batasi lebar maksimal 1600px dan tinggi maksimal 2600px agar huruf kecil tidak menyusut jadi pixel buram
+                    const maxWidth = 1600;
+                    const maxHeight = 2600;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    // Aktifkan interpolasi kualitas tinggi agar teks tajam
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.88));
+                };
+                img.onerror = () => resolve(typeof fileOrDataUrl === 'string' ? fileOrDataUrl : null);
+
+                if (typeof fileOrDataUrl === 'string') {
+                    img.src = fileOrDataUrl;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { img.src = e.target.result; };
+                    reader.readAsDataURL(fileOrDataUrl);
+                }
+            });
         }
 
-        window.handleStrukUpload = function(event) {
+        window.captureCameraPhoto = async function() {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            closeCameraModal();
+            showToast("Mengoptimalkan kejernihan foto...", "info");
+            const optimized = await compressImageForOCR(rawDataUrl);
+            processImageForOCR(optimized, 'image/jpeg');
+        }
+
+        window.handleStrukUpload = async function(event) {
             const file = event.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => processImageForOCR(reader.result, file.type);
+            showToast("Mengoptimalkan ukuran gambar...", "info");
+            const optimized = await compressImageForOCR(file);
+            processImageForOCR(optimized, 'image/jpeg');
+        }
+
+        function extractJSONFromText(text) {
+            if(!text) return null;
+            // 1. Coba parse langsung setelah strip markdown code block
+            try {
+                const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                return JSON.parse(clean);
+            } catch(e) {}
+
+            // 2. Ekstrak substring antara kurung kurawal pertama { dan kurung kurawal terakhir }
+            const firstBrace = text.indexOf('{');
+            const lastBrace = text.lastIndexOf('}');
+            if(firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                const sub = text.substring(firstBrace, lastBrace + 1);
+                try {
+                    return JSON.parse(sub);
+                } catch(e) {
+                    // Coba bersihkan trailing comma jika ada
+                    try {
+                        const noTrailingComma = sub.replace(/,\s*([}\]])/g, '$1');
+                        return JSON.parse(noTrailingComma);
+                    } catch(e2) {}
+                }
+            }
+
+            // 3. Fallback regex pencarian pasangan JSON
+            const match = text.match(/\{[\s\S]*?\}/);
+            if(match) {
+                try { return JSON.parse(match[0]); } catch(e) {}
+            }
+
+            return null;
+        }
+
+        function parseIndonesianNominal(val) {
+            if (val === undefined || val === null) return 0;
+            if (typeof val === 'number') return Math.round(val);
+            let str = String(val).trim();
+            // Hilangkan awalan "Rp", "IDR", dan spasi
+            str = str.replace(/^(Rp\.?|IDR)\s*/i, '').trim();
+            // Hilangkan desimal sen di akhir, misalnya ,00 atau .00 agar tidak terbaca ratusan ribu/jutaan
+            str = str.replace(/[,.]00$/, '');
+            // Ambil hanya angka bulat
+            str = str.replace(/[^0-9]/g, '');
+            return Number(str) || 0;
         }
 
         async function processImageForOCR(dataUrl, mimeType) {
             let keyInput = document.getElementById('setting-gemini-key');
-            let apiKey = (keyInput ? keyInput.value : '').trim();
-            apiKey = apiKey.replace(/^["']+|["']+$/g, '').trim();
+            let apiKey = (keyInput ? keyInput.value : '').trim().replace(/^["']+|["']+$/g, '');
 
             if(!apiKey) {
-                const storedKey = localStorage.getItem('myday_gemini_key');
-                if(storedKey) {
-                    apiKey = storedKey.trim().replace(/^["']+|["']+$/g, '');
-                    if(keyInput) keyInput.value = apiKey;
-                }
+                apiKey = (localStorage.getItem('myday_gemini_key') || '').trim().replace(/^["']+|["']+$/g, '');
+                if(keyInput && apiKey) keyInput.value = apiKey;
             }
 
             if(!apiKey) {
-                showToast("Gemini API Key belum diatur di menu Pengaturan!", "error");
+                showToast("Gemini API Key belum diatur di menu Profil / Pengaturan!", "error");
+                switchTab('pengaturan');
                 return;
             }
 
-            document.getElementById('ocr-loading').classList.remove('hidden');
+            const loadingEl = document.getElementById('ocr-loading');
+            if(loadingEl) loadingEl.classList.remove('hidden');
+            showToast("Menganalisis struk dengan Gemini AI...", "info");
 
             try {
                 const base64Data = dataUrl.split(',')[1];
+                const today = getLocalDateStr(new Date());
+                
+                // Prompt Terkalibrasi Khusus Struk Kasir / QRIS / Pembayaran Indonesia
+                const prompt = `Kamu adalah sistem OCR ahli pembaca struk kasir, nota belanja, invoice, dan bukti transfer/QRIS di Indonesia.
+Analisis gambar struk ini dengan cermat dan ekstrak informasinya ke dalam format JSON:
+
+Petunjuk Khusus:
+1. "nominal": Cari TOTAL AKHIR pembayaran yang sah.
+   - PENTING: Cari kata kunci "TOTAL", "TOTAL HARGA", "TOTAL BAYAR", "GRAND TOTAL", "TAGIHAN", "JUMLAH", "NETTO", atau angka nominal pembayaran akhir di struk.
+   - JANGAN MENGAMBIL:
+     * Uang tunai yang diserahkan pembeli ("TUNAI", "CASH", "DIBAYAR")
+     * Uang kembalian ("KEMBALI", "CHANGE")
+     * Nomor faktur, kode kasir, nomor kartu, atau subtotal sebelum diskon.
+   - Kembalikan murni angka integer (contoh: jika tertulis "Rp 48.500", kembalikan 48500). Jika tidak terbaca, kembalikan 0.
+
+2. "keterangan": Nama tempat belanja / toko / merchant (biasanya di baris paling atas atau header struk, contoh: "Indomaret", "Alfamart", "SPBU Pertamina", "Warung Makan", "Kopi Kenangan", "Superindo", dsb) ATAU ringkasan barang utama.
+
+3. "kategori": Tentukan salah satu kategori yang paling tepat dari pilihan berikut:
+   - "Konsumsi" (makanan, minuman, resto, cafe, belanja minimarket/makanan harian)
+   - "Belanja" (pakaian, barang kebutuhan, elektronik, pasar, perlengkapan)
+   - "Transportasi" (bensin/SPBU, ojek online, grab, gojek, parkir, tol)
+   - "Tagihan" (listrik PLN, pulsa, kuota, PDAM, wifi, iuran)
+   - "Hiburan" (bioskop, game, hobi, rekreasi)
+   - "Lainnya" (jika di luar kategori tersebut)
+
+4. "tanggal": Tanggal transaksi di struk dalam format YYYY-MM-DD. Jika tanggal pada struk tidak terlihat, gunakan "${today}".
+
+Kembalikan HANYA format JSON valid tanpa tanda petik backtick dan tanpa teks pengantar:
+{"keterangan": "Nama Toko", "nominal": 0, "kategori": "Konsumsi", "tanggal": "${today}"}`;
+
                 const payload = {
                     contents: [{
                         parts: [
-                            { text: "Analisis struk belanja/QR pembayaran ini. Berikan jawaban HANYA dalam format JSON valid tanpa markdown dengan struktur: {\"nominal\": angka_total, \"keterangan\": \"nama toko atau ringkasan pembelian\", \"tipe\": \"keluar\"}" },
-                            { inline_data: { mime_type: mimeType, data: base64Data } }
+                            { text: prompt },
+                            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } }
                         ]
                     }]
                 };
 
-                const ocrResult = await callGeminiGenerateContent(apiKey, payload);
-                document.getElementById('ocr-loading').classList.add('hidden');
+                const res = await callGeminiAPI(apiKey, payload);
+                if(loadingEl) loadingEl.classList.add('hidden');
 
-                if(!ocrResult.ok) {
-                    const lastStatus = ocrResult.status;
-                    const errData = ocrResult.error;
-                    console.error("Gemini OCR Error:", lastStatus, errData);
-                    const msg = errData?.error?.message || "";
-                    if(lastStatus === 403 || msg.includes("blocked")) {
-                        showToast("API Key Gemini tidak diizinkan/diblokir. Pastikan gunakan key dari Google AI Studio.", "error");
-                    } else if(lastStatus === 400) {
+                if(!res.ok) {
+                    const status = res.status;
+                    const err = res.error;
+                    console.error("Gemini OCR Error:", status, err);
+                    const msg = err?.error?.message || "";
+                    if(status === 403 || msg.includes("blocked")) {
+                        showToast("API Key Gemini tidak diizinkan atau diblokir. Pastikan buat key baru di Google AI Studio.", "error");
+                    } else if(status === 400) {
                         showToast("API Key Gemini tidak valid. Periksa di menu Pengaturan.", "error");
-                    } else if(lastStatus === 429) {
-                        showToast("Batas kuota Gemini API tercapai. Tunggu 1 menit lalu coba lagi.", "warning");
+                    } else if(status === 429) {
+                        showToast("Batas kuota gratis Gemini tercapai. Tunggu 1 menit lalu coba lagi.", "warning");
                     } else {
-                        showToast(`Gagal membaca struk (Error ${lastStatus}): ${msg || 'Periksa API Key'}`, "error");
+                        showToast(`Gagal membaca struk: ${msg || 'Error ' + status}`, "error");
                     }
                     return;
                 }
 
-                const result = await ocrResult.response.json();
-                const textRes = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const rawText = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const result = extractJSONFromText(rawText);
 
-                if(textRes) {
-                    const cleanJson = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
-                    const parsed = JSON.parse(cleanJson);
-                    if(parsed.nominal) document.getElementById('uang-nominal').value = parsed.nominal;
-                    if(parsed.keterangan) document.getElementById('uang-ket').value = parsed.keterangan;
-                    if(parsed.tipe) {
-                        const radio = document.querySelector(`input[name="uang-tipe"][value="${parsed.tipe}"]`);
-                        if(radio) radio.checked = true;
-                    }
-                    showToast(`Struk berhasil dipindai AI OCR! (Model: ${ocrResult.model})`, "success");
-                } else {
-                    showToast("Gagal membaca nominal atau teks dari foto struk.", "error");
+                if(!result) {
+                    console.warn("Could not extract JSON from raw response:", rawText);
+                    throw new Error("Format jawaban AI bukan JSON valid: " + rawText.substring(0, 60));
                 }
-            } catch(err) {
-                document.getElementById('ocr-loading').classList.add('hidden');
-                console.error("OCR Exception:", err);
-                showToast("Terjadi kesalahan koneksi saat menghubungi server Gemini AI.", "error");
+
+                // Normalisasi nominal dengan pembersih angka Indonesia
+                const nominalVal = parseIndonesianNominal(result.nominal);
+
+                // Otomatis buka form modal-uang dan isi nilai yang terdeteksi
+                openModal('modal-uang');
+                const radioKeluar = document.querySelector('input[name="uang-tipe"][value="keluar"]');
+                if(radioKeluar) radioKeluar.checked = true;
+                
+                document.getElementById('uang-nominal').value = nominalVal;
+                document.getElementById('uang-ket').value = result.keterangan || 'Belanja Struk';
+                
+                const tglInput = document.getElementById('uang-tgl');
+                if(tglInput) tglInput.value = result.tanggal || today;
+                
+                const katInput = document.getElementById('uang-kategori');
+                if(katInput && result.kategori) katInput.value = result.kategori;
+
+                showToast(`Struk berhasil dipindai AI OCR! (Model: ${res.model})`, "success");
+            } catch(e) {
+                if(loadingEl) loadingEl.classList.add('hidden');
+                console.error("OCR Exception:", e);
+                showToast("Gagal memproses struk: " + (e.message || "Format struk tidak terbaca"), "error");
             }
         }
 
@@ -1763,11 +1983,12 @@
         }
 
         async function renderAll(dUang, dJadwal, dHabit, dCatatan, dHutang, dProfil) {
+            todayDateStr = getLocalDateStr(new Date());
             dJadwal.sort((a, b) => (a.tanggal || todayDateStr).localeCompare(b.tanggal || todayDateStr) || (a.jam || "00:00").localeCompare(b.jam || "00:00"));
             globalJadwalData = dJadwal;
 
             if(dProfil) {
-                document.getElementById('app-name-display').innerText = dProfil.appName || 'SAKUKU';
+                document.getElementById('app-name-display').innerText = dProfil.appName || 'SINTAS';
                 document.getElementById('greet-name').innerText = dProfil.userName || 'Admin';
                 document.getElementById('user-name-display').innerText = dProfil.userName || 'Admin';
                 document.getElementById('user-avatar-text').innerText = (dProfil.userName || 'A').charAt(0).toUpperCase();
@@ -1785,7 +2006,7 @@
                 if(u.tipe === 'masuk') totalMasuk += Number(u.nominal);
                 if(u.tipe === 'keluar') {
                     totalKeluar += Number(u.nominal);
-                    if(new Date(ts).toDateString() === todayStr) keluarHariIni += Number(u.nominal);
+                    if(getLocalDateStr(new Date(ts)) === todayDateStr) keluarHariIni += Number(u.nominal);
                 }
                 
                 uangHtml += `
@@ -1875,9 +2096,15 @@
             renderMiniCalendar();
             renderSelectedDateActivities(selectedDateStr);
 
-            // Habit sorting & separation (Belum selesai di atas, terurut jam)
-            const pendingHabits = dHabit.filter(h => !h.done).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
-            const doneHabits = dHabit.filter(h => h.done).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
+            // Sinkronisasi tanggal lokal hari ini secara realtime
+            todayDateStr = getLocalDateStr(new Date());
+
+            // HABIT TRACKER REALTIME AUTO-RESET:
+            // Sebuah habit dianggap SELESAI HARI INI hanya jika ditandai selesai PADA TANGGAL HARI INI (todayDateStr).
+            // Jika habit selesai kemarin (tanggal berbeda), otomatis ter-reset kembali menjadi PENDING untuk hari ini!
+            const isHabitDoneToday = (h) => (h.done === true && h.lastCompletedDate === todayDateStr);
+            const pendingHabits = dHabit.filter(h => !isHabitDoneToday(h)).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
+            const doneHabits = dHabit.filter(h => isHabitDoneToday(h)).sort((a, b) => (a.jam || '99:99').localeCompare(b.jam || '99:99'));
             const totalHabits = dHabit.length;
             const habitDoneCount = doneHabits.length;
             const habitPct = totalHabits > 0 ? Math.round((habitDoneCount / totalHabits) * 100) : 0;
@@ -2257,7 +2484,7 @@
             const ket = document.getElementById('habit-ket').value.trim();
             if(!nama) { showToast("Nama kebiasaan harus diisi", "error"); return; }
             try {
-                await addDoc(collection(db, 'users', currentUser.uid, 'habit'), { nama, jam, ket, done: false, ts: Date.now() });
+                await addDoc(collection(db, 'users', currentUser.uid, 'habit'), { nama, jam, ket, done: false, lastCompletedDate: '', ts: Date.now() });
                 closeModal('modal-habit');
                 document.getElementById('habit-nama').value = '';
                 if(document.getElementById('habit-jam')) document.getElementById('habit-jam').value = '';
@@ -2340,7 +2567,12 @@
         window.toggleHabit = async function(id, currStatus) {
             if(!currentUser) return;
             try {
-                await updateDoc(doc(db, 'users', currentUser.uid, 'habit', id), { done: !currStatus });
+                todayDateStr = getLocalDateStr(new Date());
+                const willBeDone = !currStatus;
+                await updateDoc(doc(db, 'users', currentUser.uid, 'habit', id), { 
+                    done: willBeDone,
+                    lastCompletedDate: willBeDone ? todayDateStr : ''
+                });
                 loadCloudData();
             } catch(e) { handleFirestoreError(e, "memperbarui habit"); }
         }
